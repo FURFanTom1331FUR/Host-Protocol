@@ -3,7 +3,6 @@ package ru.hostprotocol.client.mixin;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
@@ -55,8 +54,8 @@ public abstract class TitleScreenMixin extends Screen {
 		}
 		String quit = Component.translatable("menu.quit").getString();
 		List<Button> remove = new ArrayList<>();
-		for (Renderable renderable : this.renderables) {
-			if (renderable instanceof Button button && button.getMessage().getString().equals(quit)) {
+		for (var child : this.children()) {
+			if (child instanceof Button button && button.getMessage().getString().equals(quit)) {
 				remove.add(button);
 			}
 		}
@@ -108,8 +107,8 @@ public abstract class TitleScreenMixin extends Screen {
 		}
 		if (hostprotocol$quitReplaced && (hostprotocol$glitchTick % 12) == 0) {
 			String quit = Component.translatable("menu.quit").getString();
-			for (Renderable renderable : this.renderables) {
-				if (renderable instanceof Button button) {
+			for (var child : this.children()) {
+				if (child instanceof Button button) {
 					String msg = button.getMessage().getString();
 					if (!msg.equals(quit) && isGlitchQuit(msg)) {
 						button.setMessage(Component.literal(GLITCH_QUIT[Math.floorMod(hostprotocol$glitchTick / 12, GLITCH_QUIT.length)]));

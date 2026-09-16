@@ -55,7 +55,7 @@ public final class ProtocolTime {
 	 * ~2 minutes of dayTime — shorter than a quarter day so testers are not stuck for 5 minutes.
 	 */
 	public static final long COORDS_LOCK_DAYTIME_FALLBACK = 2400L;
-	/** @deprecated use {@link #COORDS_LOCK_DAYTIME_FALLBACK}; kept so older spread catch-up still compiles. */
+	@Deprecated
 	public static final long COORDS_LOCK_DELAY = COORDS_LOCK_DAYTIME_FALLBACK;
 	/** Auto Septic cinematic 10s after coords if the player never slept. */
 	public static final long SEPTIC_AUTO_GAME_TICKS_MIN = TICKS_PER_SECOND * 10L;
