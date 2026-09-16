@@ -8,7 +8,7 @@ import ru.hostprotocol.item.PdaService;
 import ru.hostprotocol.network.ModNetworking;
 
 /**
- * Detects dawn / day-index increases after intro and fires wake announcements + Day-2 PDA log.
+ * Detects dawn / day-index increases after intro and fires wake announcements + PDA logs.
  */
 public final class ProtocolDayTracker {
 	private ProtocolDayTracker() {}
@@ -30,9 +30,7 @@ public final class ProtocolDayTracker {
 	public static void onIntroCompleted(ServerPlayer player, IntroWorldData data) {
 		int day = ProtocolTime.dayIndex(player.serverLevel().getServer().overworld().getDayTime());
 		data.setLastAnnouncedDay(player.getUUID(), day);
-		if (day >= 2) {
-			unlockDay2(player, data);
-		}
+		unlockLogs(player, data, day);
 		ModNetworking.sendProtocolState(player, data);
 	}
 
@@ -41,9 +39,7 @@ public final class ProtocolDayTracker {
 		if (last <= 0) {
 			// Reconnect / first observation of a completed world: do not spam the current day.
 			data.setLastAnnouncedDay(player.getUUID(), day);
-			if (day >= 2) {
-				unlockDay2(player, data);
-			}
+			unlockLogs(player, data, day);
 			ModNetworking.sendProtocolState(player, data);
 			return;
 		}
@@ -52,15 +48,19 @@ public final class ProtocolDayTracker {
 		}
 		data.setLastAnnouncedDay(player.getUUID(), day);
 		ModNetworking.sendDayAnnounce(player, day);
-		if (day >= 2) {
-			unlockDay2(player, data);
-		}
+		unlockLogs(player, data, day);
 		ModNetworking.sendProtocolState(player, data);
 	}
 
-	private static void unlockDay2(ServerPlayer player, IntroWorldData data) {
-		if (data.markDay2Log(player.getUUID())) {
+	private static void unlockLogs(ServerPlayer player, IntroWorldData data, int day) {
+		if (day >= 2 && data.markDay2Log(player.getUUID())) {
 			PdaService.stampDay2Log(player);
+		}
+		if (day >= 3 && data.markDay3Log(player.getUUID())) {
+			PdaService.stampDay3Log(player);
+		}
+		if (data.isCoordsDiscovered()) {
+			PdaService.stampDay2Coords(player, data);
 		}
 	}
 }
