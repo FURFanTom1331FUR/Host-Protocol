@@ -2,30 +2,32 @@ package ru.hostprotocol.client;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.ColorProviderRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.fabricmc.fabric.api.entity.event.v1.EntitySleepEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BiomeColors;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.GrassColor;
 import ru.hostprotocol.HostProtocolMod;
 import ru.hostprotocol.block.ModBlocks;
+import ru.hostprotocol.client.breach.BreachClientFlags;
+import ru.hostprotocol.client.breach.BreachWatchdog;
+import ru.hostprotocol.client.fx.CoordsUnlockClientFx;
 import ru.hostprotocol.client.fx.DayAnnounceClientFx;
 import ru.hostprotocol.client.fx.MaterializeClientFx;
 import ru.hostprotocol.client.fx.PdaAppearClientFx;
 import ru.hostprotocol.client.fx.SepticLinkClientFx;
+import ru.hostprotocol.client.fx.SystemErrorClientFx;
 import ru.hostprotocol.client.hud.DayHud;
 import ru.hostprotocol.client.screen.IntroScreen;
 import ru.hostprotocol.client.screen.PdaScreen;
 import ru.hostprotocol.item.ClientItemScreens;
 import ru.hostprotocol.network.ModNetworking;
-import ru.hostprotocol.world.ProtocolTime;
 
 public class HostProtocolClient implements ClientModInitializer {
 	private static String pendingSubjectId;
@@ -52,17 +54,11 @@ public class HostProtocolClient implements ClientModInitializer {
 			return BiomeColors.getAverageGrassColor(world, pos);
 		}, ModBlocks.INFECTED_GRASS_BLOCK);
 
-		EntitySleepEvents.ALLOW_SLEEPING.register((player, pos) -> {
-			if (!player.level().isClientSide()) {
-				return null;
+		ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
+			BreachClientFlags.load(client);
+			if (BreachClientFlags.isBreached()) {
+				BreachWatchdog.arm(client);
 			}
-			if (ProtocolClientState.hasSepticLinkAttempted() || !ProtocolClientState.isInfectionActive()) {
-				return null;
-			}
-			if (ProtocolTime.dayIndex(player.level().getDayTime()) != 2) {
-				return null;
-			}
-			return Player.BedSleepingProblem.OTHER_PROBLEM;
 		});
 
 		ClientPlayNetworking.registerGlobalReceiver(ModNetworking.INTRO_STATE_S2C, (client, handler, buf, responseSender) -> {
@@ -95,9 +91,18 @@ public class HostProtocolClient implements ClientModInitializer {
 			boolean hasCoords = buf.readBoolean();
 			BlockPos focus = hasCoords ? buf.readBlockPos() : null;
 			String garbled = buf.readUtf();
-			client.execute(() -> ProtocolClientState.apply(
-					subjectId, introCompleted, day2, day2Coords, day3, pdaGiven, day,
-					infection, septicLink, hasCoords, focus, garbled));
+			boolean breached = buf.readBoolean();
+			boolean systemError = buf.readBoolean();
+			boolean blueprints = buf.readBoolean();
+			client.execute(() -> {
+				ProtocolClientState.apply(
+						subjectId, introCompleted, day2, day2Coords, day3, pdaGiven, day,
+						infection, septicLink, hasCoords, focus, garbled,
+						breached, systemError, blueprints);
+				if (breached) {
+					BreachWatchdog.arm(client);
+				}
+			});
 		});
 
 		ClientPlayNetworking.registerGlobalReceiver(ModNetworking.PDA_APPEAR_S2C, (client, handler, buf, responseSender) -> {
@@ -122,11 +127,26 @@ public class HostProtocolClient implements ClientModInitializer {
 			client.execute(() -> SepticLinkClientFx.play(client, subjectId, garbled, duration));
 		});
 
+		ClientPlayNetworking.registerGlobalReceiver(ModNetworking.COORDS_UNLOCK_S2C, (client, handler, buf, responseSender) -> {
+			BlockPos pos = buf.readBlockPos();
+			client.execute(() -> CoordsUnlockClientFx.play(client, pos.getX(), pos.getY(), pos.getZ()));
+		});
+
+		ClientPlayNetworking.registerGlobalReceiver(ModNetworking.BREACH_S2C, (client, handler, buf, responseSender) -> {
+			client.execute(() -> BreachWatchdog.arm(client));
+		});
+
+		ClientPlayNetworking.registerGlobalReceiver(ModNetworking.SYSTEM_ERROR_S2C, (client, handler, buf, responseSender) -> {
+			client.execute(() -> SystemErrorClientFx.play(client));
+		});
+
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			MaterializeClientFx.clientTick(client);
 			PdaAppearClientFx.clientTick(client);
 			DayAnnounceClientFx.clientTick();
+			CoordsUnlockClientFx.clientTick();
 			SepticLinkClientFx.clientTick(client);
+			SystemErrorClientFx.clientTick(client);
 			if (!pendingIntro || pendingSubjectId == null) {
 				return;
 			}
@@ -152,14 +172,19 @@ public class HostProtocolClient implements ClientModInitializer {
 			MaterializeClientFx.renderHudOverlay(graphics, client);
 			PdaAppearClientFx.render(graphics, client);
 			DayAnnounceClientFx.render(graphics, client);
+			// Cinematics also draw from GameRendererMixin (on top of F1 / pause / sleep).
 			SepticLinkClientFx.render(graphics, client);
+			CoordsUnlockClientFx.render(graphics, client);
+			SystemErrorClientFx.render(graphics, client);
 		});
 
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
 			MaterializeClientFx.cancel(client);
 			PdaAppearClientFx.cancel(client);
 			DayAnnounceClientFx.cancel();
+			CoordsUnlockClientFx.cancel();
 			SepticLinkClientFx.cancel(client);
+			SystemErrorClientFx.cancel(client);
 			ProtocolClientState.reset();
 			IntroClientState.setFreezeActive(false);
 			pendingIntro = false;

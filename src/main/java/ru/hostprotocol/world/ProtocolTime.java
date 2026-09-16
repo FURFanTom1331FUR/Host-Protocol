@@ -22,8 +22,9 @@ package ru.hostprotocol.world;
  * {@code /time set night} jumps to {@code 13000} (Day 1 night) and does <em>not</em> start Day 2
  * infection. Use {@code /time set 37000} or {@code /time add 13000} from dawn of Day 2.
  *
- * <p>Coordinate lock delay after activation is {@link #COORDS_LOCK_DELAY} ticks
- * (¼ of a solar day, ~5 minutes / 6000 ticks). {@code /time add 6000} after activation unlocks it.
+ * <p>Coordinate lock uses <strong>gameTime</strong> (~45–90 real seconds at 20 tps) with a
+ * {@code dayTime} fallback so {@code /time add} still unlocks. Day index ≥ 3 is a last-resort
+ * fallback if the player skipped the whole night.
  *
  * <p>Testing notes:
  * <ul>
@@ -34,6 +35,7 @@ package ru.hostprotocol.world;
  *   <li>{@code /time set night} — sets the clock to {@code 13000} <em>of day 1's cycle</em> if used as an absolute set.</li>
  *   <li>Sleeping through the night jumps to dawn of the next day (vanilla {@code setDayTime} skip),
  *       except the first Day-2-night sleep while infection is active (Septic link cinematic; night is not skipped).</li>
+ *   <li>{@code /hostprotocol forcecoords} / {@code forceseptic} — debug unlocks that skip the wait.</li>
  * </ul>
  */
 public final class ProtocolTime {
@@ -42,8 +44,23 @@ public final class ProtocolTime {
 	public static final long NIGHT_START = 13000L;
 	/** Morning: sun is up enough that vanilla treats the cycle as day again. */
 	public static final long DAY_START = 23000L;
-	/** After infection activates, wait this long (¼ MC day) before locking focus coordinates. */
-	public static final long COORDS_LOCK_DELAY = TICKS_PER_DAY / 4L;
+	/** 20 ticks = 1 second of real/game time while the server is ticking. */
+	public static final int TICKS_PER_SECOND = 20;
+	/** Minimum real-time wait after focus before coords unlock (45s). */
+	public static final long COORDS_LOCK_GAME_TICKS_MIN = TICKS_PER_SECOND * 45L;
+	/** Maximum real-time wait after focus before coords unlock (90s). */
+	public static final long COORDS_LOCK_GAME_TICKS_MAX = TICKS_PER_SECOND * 90L;
+	/**
+	 * Solar-clock fallback if {@code /time add} skipped the real-time wait.
+	 * ~2 minutes of dayTime — shorter than a quarter day so testers are not stuck for 5 minutes.
+	 */
+	public static final long COORDS_LOCK_DAYTIME_FALLBACK = 2400L;
+	/** @deprecated use {@link #COORDS_LOCK_DAYTIME_FALLBACK}; kept so older spread catch-up still compiles. */
+	public static final long COORDS_LOCK_DELAY = COORDS_LOCK_DAYTIME_FALLBACK;
+	/** Auto Septic cinematic 10s after coords if the player never slept. */
+	public static final long SEPTIC_AUTO_GAME_TICKS_MIN = TICKS_PER_SECOND * 10L;
+	/** Auto Septic cinematic 20s after coords if the player never slept. */
+	public static final long SEPTIC_AUTO_GAME_TICKS_MAX = TICKS_PER_SECOND * 20L;
 
 	private ProtocolTime() {}
 
@@ -73,5 +90,17 @@ public final class ProtocolTime {
 	 */
 	public static boolean isDay2Night(long dayTime) {
 		return dayIndex(dayTime) == 2 && isNight(dayTime);
+	}
+
+	/** Seed-stable delay in {@code [45s, 90s]} of game ticks. */
+	public static long coordsLockGameDelay(long seed) {
+		long span = COORDS_LOCK_GAME_TICKS_MAX - COORDS_LOCK_GAME_TICKS_MIN + 1L;
+		return COORDS_LOCK_GAME_TICKS_MIN + Math.floorMod(seed ^ 0x434F4F524453L, span);
+	}
+
+	/** Seed-stable delay in {@code [10s, 20s]} of game ticks after coords unlock. */
+	public static long septicAutoGameDelay(long seed) {
+		long span = SEPTIC_AUTO_GAME_TICKS_MAX - SEPTIC_AUTO_GAME_TICKS_MIN + 1L;
+		return SEPTIC_AUTO_GAME_TICKS_MIN + Math.floorMod(seed ^ 0x534550544943L, span);
 	}
 }

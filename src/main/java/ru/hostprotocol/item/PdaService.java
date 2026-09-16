@@ -101,6 +101,14 @@ public final class PdaService {
 		forEachPda(player, PdaItem::markDay3Log);
 	}
 
+	public static void stampSystemError(ServerPlayer player) {
+		forEachPda(player, PdaItem::markSystemErrorLog);
+	}
+
+	public static void stampBlueprints(ServerPlayer player) {
+		forEachPda(player, PdaItem::markBlueprints);
+	}
+
 	public static void stampLogs(ServerPlayer player, IntroWorldData data) {
 		forEachPda(player, stack -> stampStack(stack, data, player.getUUID()));
 	}
@@ -114,6 +122,12 @@ public final class PdaService {
 		}
 		if (data.hasDay3Log(playerId)) {
 			PdaItem.markDay3Log(stack);
+		}
+		if (data.hasSystemErrorLog(playerId)) {
+			PdaItem.markSystemErrorLog(stack);
+		}
+		if (data.hasBlueprints(playerId)) {
+			PdaItem.markBlueprints(stack);
 		}
 	}
 

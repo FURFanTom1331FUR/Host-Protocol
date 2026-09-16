@@ -8,6 +8,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import ru.hostprotocol.freeze.IntroFreeze;
+import ru.hostprotocol.infection.SepticLinkController;
 
 @Mixin(ServerLevel.class)
 public abstract class ServerLevelMixin {
@@ -35,5 +36,12 @@ public abstract class ServerLevelMixin {
 	)
 	private boolean hostprotocol$skipChunkSimulation(boolean tickChunks) {
 		return tickChunks && !IntroFreeze.isActive();
+	}
+
+	@Inject(method = "wakeUpAllPlayers", at = @At("HEAD"), cancellable = true)
+	private void hostprotocol$holdNightForSeptic(CallbackInfo ci) {
+		if (SepticLinkController.shouldBlockNightSkip((ServerLevel) (Object) this)) {
+			ci.cancel();
+		}
 	}
 }

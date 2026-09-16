@@ -3,7 +3,7 @@ package ru.hostprotocol.client;
 import net.minecraft.core.BlockPos;
 
 /**
- * Client mirror of per-player protocol flags (PDA logs, intro, infection lock).
+ * Client mirror of per-player protocol flags (PDA logs, intro, infection lock, breach).
  */
 public final class ProtocolClientState {
 	private static String subjectId = "—";
@@ -17,6 +17,9 @@ public final class ProtocolClientState {
 	private static boolean infectionActive;
 	private static boolean septicLinkAttempted;
 	private static boolean coordsDiscovered;
+	private static boolean protocolBreached;
+	private static boolean systemErrorLog;
+	private static boolean blueprints;
 	private static int focusX;
 	private static int focusY;
 	private static int focusZ;
@@ -35,7 +38,10 @@ public final class ProtocolClientState {
 			boolean septicLink,
 			boolean hasCoords,
 			BlockPos focus,
-			String garbled
+			String garbled,
+			boolean breached,
+			boolean systemError,
+			boolean scannerBlueprints
 	) {
 		subjectId = subject == null || subject.isEmpty() ? "—" : subject;
 		garbledSubjectId = garbled == null || garbled.isEmpty() ? "—" : garbled;
@@ -48,6 +54,9 @@ public final class ProtocolClientState {
 		infectionActive = infection;
 		septicLinkAttempted = septicLink;
 		coordsDiscovered = hasCoords;
+		protocolBreached = breached;
+		systemErrorLog = systemError;
+		blueprints = scannerBlueprints;
 		if (focus != null) {
 			focusX = focus.getX();
 			focusY = focus.getY();
@@ -67,6 +76,9 @@ public final class ProtocolClientState {
 		infectionActive = false;
 		septicLinkAttempted = false;
 		coordsDiscovered = false;
+		protocolBreached = false;
+		systemErrorLog = false;
+		blueprints = false;
 		focusX = 0;
 		focusY = 0;
 		focusZ = 0;
@@ -114,6 +126,18 @@ public final class ProtocolClientState {
 
 	public static boolean isCoordsDiscovered() {
 		return coordsDiscovered || day2Coords;
+	}
+
+	public static boolean isProtocolBreached() {
+		return protocolBreached;
+	}
+
+	public static boolean hasSystemErrorLog() {
+		return systemErrorLog;
+	}
+
+	public static boolean hasBlueprints() {
+		return blueprints;
 	}
 
 	public static int focusX() {

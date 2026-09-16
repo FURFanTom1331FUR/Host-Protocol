@@ -17,6 +17,9 @@ public final class ModNetworking {
 	public static final ResourceLocation PDA_APPEAR_S2C = HostProtocolMod.id("pda_appear");
 	public static final ResourceLocation DAY_ANNOUNCE_S2C = HostProtocolMod.id("day_announce");
 	public static final ResourceLocation SEPTIC_LINK_S2C = HostProtocolMod.id("septic_link");
+	public static final ResourceLocation COORDS_UNLOCK_S2C = HostProtocolMod.id("coords_unlock");
+	public static final ResourceLocation BREACH_S2C = HostProtocolMod.id("protocol_breach");
+	public static final ResourceLocation SYSTEM_ERROR_S2C = HostProtocolMod.id("system_error");
 
 	private ModNetworking() {}
 
@@ -49,6 +52,9 @@ public final class ModNetworking {
 			buf.writeBlockPos(new BlockPos(data.getFocusX(), data.getFocusY(), data.getFocusZ()));
 		}
 		buf.writeUtf(data.garbledSubjectId());
+		buf.writeBoolean(data.isProtocolBreached());
+		buf.writeBoolean(data.hasSystemErrorLog(player.getUUID()));
+		buf.writeBoolean(data.hasBlueprints(player.getUUID()));
 		ServerPlayNetworking.send(player, PROTOCOL_STATE_S2C, buf);
 	}
 
@@ -70,6 +76,20 @@ public final class ModNetworking {
 		buf.writeUtf(garbledId);
 		buf.writeVarInt(durationTicks);
 		ServerPlayNetworking.send(player, SEPTIC_LINK_S2C, buf);
+	}
+
+	public static void sendCoordsUnlock(ServerPlayer player, int x, int y, int z) {
+		FriendlyByteBuf buf = PacketByteBufs.create();
+		buf.writeBlockPos(new BlockPos(x, y, z));
+		ServerPlayNetworking.send(player, COORDS_UNLOCK_S2C, buf);
+	}
+
+	public static void sendBreach(ServerPlayer player) {
+		ServerPlayNetworking.send(player, BREACH_S2C, PacketByteBufs.create());
+	}
+
+	public static void sendSystemError(ServerPlayer player) {
+		ServerPlayNetworking.send(player, SYSTEM_ERROR_S2C, PacketByteBufs.create());
 	}
 
 	public static FriendlyByteBuf createIntroCompletePacket() {

@@ -5,7 +5,9 @@
 	"client": [
 		"PlayerRendererMixin",
 		"SoundEngineMixin",
-		"ClientLevelMixin"
+		"ClientLevelMixin",
+		"TitleScreenMixin",
+		"GameRendererMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
