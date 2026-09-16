@@ -1,0 +1,29 @@
+{
+	"voice.intro_title": {
+		"subtitle": "subtitles.hostprotocol.voice.intro_title",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/intro_title",
+				"stream": true
+			}
+		]
+	},
+	"voice.intro_credits": {
+		"subtitle": "subtitles.hostprotocol.voice.intro_credits",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/intro_credits",
+				"stream": true
+			}
+		]
+	},
+	"voice.connection_error": {
+		"subtitle": "subtitles.hostprotocol.voice.connection_error",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/connection_error",
+				"stream": true
+			}
+		]
+	}
+}

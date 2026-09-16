@@ -1,0 +1,14 @@
+{
+	"hostprotocol.title": "HOST PROTOCOL",
+	"hostprotocol.press_to_continue": "Нажмите, чтобы продолжить",
+	"hostprotocol.credits.line1": "Вы — Испытуемый %s.",
+	"hostprotocol.credits.line2": "Вы попали в мир Host Protocol.",
+	"hostprotocol.credits.line3": "Этот мир — ошибка.",
+	"hostprotocol.credits.line4": "Задача: исследовать мир, найти источник заражения и устранить вирус.",
+	"hostprotocol.credits.line5": "У вас есть сто дней.",
+	"hostprotocol.credits.line6": "Протокол активен.",
+	"hostprotocol.connection_error": "Ошибка подключения к системе…",
+	"subtitles.hostprotocol.voice.intro_title": "Голос протокола",
+	"subtitles.hostprotocol.voice.intro_credits": "Голос протокола",
+	"subtitles.hostprotocol.voice.connection_error": "Голос протокола"
+}
