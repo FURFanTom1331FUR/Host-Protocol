@@ -77,7 +77,7 @@ public final class PdaService {
 				continue;
 			}
 			int left = PENDING_DELIVER_TICKS.merge(id, -1, Integer::sum);
-			if (left != null && left <= 0) {
+			if (left <= 0) {
 				PENDING_DELIVER_TICKS.remove(id);
 				IntroWorldData data = IntroWorldData.get(player.serverLevel().getServer().overworld());
 				deliverToInventory(player, data);
