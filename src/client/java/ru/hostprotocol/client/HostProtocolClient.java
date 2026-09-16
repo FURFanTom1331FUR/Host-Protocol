@@ -9,6 +9,8 @@ import net.minecraft.client.Minecraft;
 import ru.hostprotocol.HostProtocolMod;
 import ru.hostprotocol.client.fx.MaterializeClientFx;
 import ru.hostprotocol.client.screen.IntroScreen;
+import ru.hostprotocol.client.screen.PdaScreen;
+import ru.hostprotocol.item.ClientItemScreens;
 import ru.hostprotocol.network.ModNetworking;
 
 public class HostProtocolClient implements ClientModInitializer {
@@ -24,9 +26,11 @@ public class HostProtocolClient implements ClientModInitializer {
 				if (!introCompleted) {
 					pendingSubjectId = subjectId;
 					pendingIntro = true;
+					IntroClientState.setFreezeActive(true);
 				} else {
 					pendingIntro = false;
 					pendingSubjectId = null;
+					IntroClientState.setFreezeActive(false);
 					HostProtocolMod.LOGGER.debug("Intro already completed for subject {}", subjectId);
 				}
 			});
@@ -58,7 +62,14 @@ public class HostProtocolClient implements ClientModInitializer {
 			MaterializeClientFx.renderHudOverlay(graphics, client);
 		});
 
-		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> MaterializeClientFx.cancel(client));
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+			MaterializeClientFx.cancel(client);
+			IntroClientState.setFreezeActive(false);
+			pendingIntro = false;
+			pendingSubjectId = null;
+		});
+
+		ClientItemScreens.OPEN_PDA = stack -> Minecraft.getInstance().setScreen(new PdaScreen(stack));
 
 		HostProtocolMod.LOGGER.info("Host Protocol client ready");
 	}
