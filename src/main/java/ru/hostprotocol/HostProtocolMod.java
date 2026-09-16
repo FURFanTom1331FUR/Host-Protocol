@@ -17,6 +17,8 @@ import ru.hostprotocol.item.ModItems;
 import ru.hostprotocol.item.PdaService;
 import ru.hostprotocol.network.ModNetworking;
 import ru.hostprotocol.sound.ModSounds;
+import ru.hostprotocol.world.ProtocolDayTracker;
+import ru.hostprotocol.world.ProtocolTime;
 
 public class HostProtocolMod implements ModInitializer {
 	public static final String MOD_ID = "hostprotocol";
@@ -33,7 +35,11 @@ public class HostProtocolMod implements ModInitializer {
 		ModNetworking.registerServer();
 		registerCommands();
 
-		ServerTickEvents.END_SERVER_TICK.register(IntroFreeze::tick);
+		ServerTickEvents.END_SERVER_TICK.register(server -> {
+			IntroFreeze.tick(server);
+			PdaService.tick(server);
+			ProtocolDayTracker.tick(server);
+		});
 
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			ServerPlayer player = handler.player;
@@ -41,9 +47,10 @@ public class HostProtocolMod implements ModInitializer {
 			if (!data.isIntroCompleted()) {
 				IntroFreeze.begin(player);
 			} else {
-				PdaService.grantIfNeeded(player, data, false);
+				PdaService.grantIfNeeded(player, data, !data.hasReceivedPda(player.getUUID()));
 			}
 			ModNetworking.sendIntroState(player, data.getSubjectId(), data.isIntroCompleted());
+			ModNetworking.sendProtocolState(player, data);
 		});
 
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> IntroFreeze.end(handler.player));
@@ -53,12 +60,13 @@ public class HostProtocolMod implements ModInitializer {
 				IntroWorldData data = IntroWorldData.get(player.serverLevel().getServer().overworld());
 				data.markIntroCompleted();
 				IntroFreeze.end(player);
+				ProtocolDayTracker.onIntroCompleted(player, data);
 				PdaService.grantIfNeeded(player, data, true);
 				LOGGER.info("Intro completed for world; subject={}", data.getSubjectId());
 			});
 		});
 
-		LOGGER.info("Host Protocol initialized (intro freeze + PDA)");
+		LOGGER.info("Host Protocol initialized (intro freeze + PDA + day tracker)");
 	}
 
 	private static void registerCommands() {
@@ -71,9 +79,26 @@ public class HostProtocolMod implements ModInitializer {
 									data.resetIntroCompleted();
 									IntroFreeze.begin(player);
 									ModNetworking.sendIntroState(player, data.getSubjectId(), false);
+									ModNetworking.sendProtocolState(player, data);
 									ctx.getSource().sendSuccess(() -> Component.translatable("hostprotocol.command.replayintro"), true);
 									LOGGER.info("Intro replay requested by {}; subject={}", player.getGameProfile().getName(), data.getSubjectId());
 									return 1;
+								}))
+						.then(Commands.literal("status")
+								.executes(ctx -> {
+									ServerPlayer player = ctx.getSource().getPlayerOrException();
+									IntroWorldData data = IntroWorldData.get(player.serverLevel().getServer().overworld());
+									int day = ProtocolTime.dayIndex(player.serverLevel().getServer().overworld().getDayTime());
+									ctx.getSource().sendSuccess(() -> Component.translatable(
+											"hostprotocol.command.status",
+											day,
+											data.getSubjectId(),
+											data.hasReceivedPda(player.getUUID()),
+											data.hasDeliveredPda(player.getUUID()),
+											data.hasDay2Log(player.getUUID()),
+											PdaService.countPdas(player)
+									), false);
+									return day;
 								}))
 		));
 	}
