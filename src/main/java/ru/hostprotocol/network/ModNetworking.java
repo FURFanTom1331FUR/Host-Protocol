@@ -2,6 +2,7 @@ package ru.hostprotocol.network;
 
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -15,6 +16,7 @@ public final class ModNetworking {
 	public static final ResourceLocation PROTOCOL_STATE_S2C = HostProtocolMod.id("protocol_state");
 	public static final ResourceLocation PDA_APPEAR_S2C = HostProtocolMod.id("pda_appear");
 	public static final ResourceLocation DAY_ANNOUNCE_S2C = HostProtocolMod.id("day_announce");
+	public static final ResourceLocation SEPTIC_LINK_S2C = HostProtocolMod.id("septic_link");
 
 	private ModNetworking() {}
 
@@ -34,9 +36,19 @@ public final class ModNetworking {
 		buf.writeUtf(data.getSubjectId());
 		buf.writeBoolean(data.isIntroCompleted());
 		buf.writeBoolean(data.hasDay2Log(player.getUUID()));
+		buf.writeBoolean(data.hasDay2CoordsLog(player.getUUID()) && data.isCoordsDiscovered());
+		buf.writeBoolean(data.hasDay3Log(player.getUUID()));
 		buf.writeBoolean(data.hasReceivedPda(player.getUUID()));
 		long dayTime = player.serverLevel().getServer().overworld().getDayTime();
 		buf.writeVarInt(ProtocolTime.dayIndex(dayTime));
+		buf.writeBoolean(data.isInfectionActive());
+		buf.writeBoolean(data.hasSepticLinkAttempted());
+		boolean coords = data.isCoordsDiscovered() && data.hasInfectionFocus();
+		buf.writeBoolean(coords);
+		if (coords) {
+			buf.writeBlockPos(new BlockPos(data.getFocusX(), data.getFocusY(), data.getFocusZ()));
+		}
+		buf.writeUtf(data.garbledSubjectId());
 		ServerPlayNetworking.send(player, PROTOCOL_STATE_S2C, buf);
 	}
 
@@ -50,6 +62,14 @@ public final class ModNetworking {
 		FriendlyByteBuf buf = PacketByteBufs.create();
 		buf.writeVarInt(day);
 		ServerPlayNetworking.send(player, DAY_ANNOUNCE_S2C, buf);
+	}
+
+	public static void sendSepticLink(ServerPlayer player, String subjectId, String garbledId, int durationTicks) {
+		FriendlyByteBuf buf = PacketByteBufs.create();
+		buf.writeUtf(subjectId);
+		buf.writeUtf(garbledId);
+		buf.writeVarInt(durationTicks);
+		ServerPlayNetworking.send(player, SEPTIC_LINK_S2C, buf);
 	}
 
 	public static FriendlyByteBuf createIntroCompletePacket() {

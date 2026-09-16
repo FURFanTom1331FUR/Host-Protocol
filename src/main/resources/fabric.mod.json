@@ -3,7 +3,7 @@
 	"id": "hostprotocol",
 	"version": "${version}",
 	"name": "Host Protocol",
-	"description": "Мир сам является Ошибкой. Интро, КПК испытуемого, счётчик дней Host Protocol.",
+	"description": "Мир сам является Ошибкой. Интро, КПК испытуемого, дни Host Protocol, очаг заражения дня 2.",
 	"authors": [
 		"Артём Скопенков"
 	],

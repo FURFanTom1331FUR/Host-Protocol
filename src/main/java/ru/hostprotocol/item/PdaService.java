@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 /**
  * One PDA per player. Never drops a second copy at the player's feet.
@@ -36,9 +37,7 @@ public final class PdaService {
 			PENDING_DELIVER_TICKS.remove(player.getUUID());
 			data.markPdaReceived(player.getUUID());
 			data.markPdaDelivered(player.getUUID());
-			if (data.hasDay2Log(player.getUUID())) {
-				stampDay2Log(player);
-			}
+			stampLogs(player, data);
 			return;
 		}
 
@@ -86,10 +85,43 @@ public final class PdaService {
 	}
 
 	public static void stampDay2Log(ServerPlayer player) {
+		forEachPda(player, PdaItem::markDay2Log);
+	}
+
+	public static void stampDay2Coords(ServerPlayer player, IntroWorldData data) {
+		if (!data.isCoordsDiscovered() || !data.hasInfectionFocus()) {
+			return;
+		}
+		data.markDay2Log(player.getUUID());
+		data.markDay2CoordsLog(player.getUUID());
+		forEachPda(player, stack -> PdaItem.markDay2Coords(stack, data.getFocusX(), data.getFocusY(), data.getFocusZ()));
+	}
+
+	public static void stampDay3Log(ServerPlayer player) {
+		forEachPda(player, PdaItem::markDay3Log);
+	}
+
+	public static void stampLogs(ServerPlayer player, IntroWorldData data) {
+		forEachPda(player, stack -> stampStack(stack, data, player.getUUID()));
+	}
+
+	private static void stampStack(ItemStack stack, IntroWorldData data, UUID playerId) {
+		if (data.hasDay2Log(playerId)) {
+			PdaItem.markDay2Log(stack);
+		}
+		if (data.hasDay2CoordsLog(playerId) && data.isCoordsDiscovered() && data.hasInfectionFocus()) {
+			PdaItem.markDay2Coords(stack, data.getFocusX(), data.getFocusY(), data.getFocusZ());
+		}
+		if (data.hasDay3Log(playerId)) {
+			PdaItem.markDay3Log(stack);
+		}
+	}
+
+	private static void forEachPda(ServerPlayer player, Consumer<ItemStack> consumer) {
 		for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
 			ItemStack stack = player.getInventory().getItem(i);
 			if (stack.is(ModItems.PDA)) {
-				PdaItem.markDay2Log(stack);
+				consumer.accept(stack);
 			}
 		}
 		player.getInventory().setChanged();
@@ -110,9 +142,7 @@ public final class PdaService {
 		despawnStrayPdaEntities(player);
 		if (countPdas(player) >= 1) {
 			data.markPdaDelivered(player.getUUID());
-			if (data.hasDay2Log(player.getUUID())) {
-				stampDay2Log(player);
-			}
+			stampLogs(player, data);
 			return;
 		}
 		if (data.hasDeliveredPda(player.getUUID())) {
@@ -120,9 +150,7 @@ public final class PdaService {
 		}
 
 		ItemStack pda = PdaItem.createForSubject(data.getSubjectId());
-		if (data.hasDay2Log(player.getUUID())) {
-			PdaItem.markDay2Log(pda);
-		}
+		stampStack(pda, data, player.getUUID());
 		boolean added = player.addItem(pda);
 		if (!added) {
 			player.drop(pda, false);

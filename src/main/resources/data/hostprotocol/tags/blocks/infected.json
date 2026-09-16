@@ -1,0 +1,11 @@
+{
+	"replace": false,
+	"values": [
+		"hostprotocol:infected_stone",
+		"hostprotocol:infected_cobblestone",
+		"hostprotocol:infected_dirt",
+		"hostprotocol:infected_grass_block",
+		"hostprotocol:infected_oak_log",
+		"hostprotocol:infected_oak_planks"
+	]
+}

@@ -1,0 +1,6 @@
+{
+	"parent": "hostprotocol:block/infected_overlay_all",
+	"textures": {
+		"all": "minecraft:block/dirt"
+	}
+}

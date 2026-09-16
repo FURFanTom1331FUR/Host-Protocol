@@ -20,6 +20,11 @@ import java.util.List;
 public class PdaItem extends Item {
 	public static final String TAG_SUBJECT = "SubjectId";
 	public static final String TAG_DAY2 = "Day2Log";
+	public static final String TAG_DAY2_COORDS = "Day2Coords";
+	public static final String TAG_FOCUS_X = "FocusX";
+	public static final String TAG_FOCUS_Y = "FocusY";
+	public static final String TAG_FOCUS_Z = "FocusZ";
+	public static final String TAG_DAY3 = "Day3Log";
 
 	public PdaItem(Properties properties) {
 		super(properties);
@@ -38,6 +43,44 @@ public class PdaItem extends Item {
 
 	public static void markDay2Log(ItemStack stack) {
 		stack.getOrCreateTag().putBoolean(TAG_DAY2, true);
+	}
+
+	public static boolean hasDay2Coords(ItemStack stack) {
+		CompoundTag tag = stack.getTag();
+		return tag != null && tag.getBoolean(TAG_DAY2_COORDS);
+	}
+
+	public static void markDay2Coords(ItemStack stack, int x, int y, int z) {
+		CompoundTag tag = stack.getOrCreateTag();
+		tag.putBoolean(TAG_DAY2, true);
+		tag.putBoolean(TAG_DAY2_COORDS, true);
+		tag.putInt(TAG_FOCUS_X, x);
+		tag.putInt(TAG_FOCUS_Y, y);
+		tag.putInt(TAG_FOCUS_Z, z);
+	}
+
+	public static int getFocusX(ItemStack stack) {
+		CompoundTag tag = stack.getTag();
+		return tag == null ? 0 : tag.getInt(TAG_FOCUS_X);
+	}
+
+	public static int getFocusY(ItemStack stack) {
+		CompoundTag tag = stack.getTag();
+		return tag == null ? 0 : tag.getInt(TAG_FOCUS_Y);
+	}
+
+	public static int getFocusZ(ItemStack stack) {
+		CompoundTag tag = stack.getTag();
+		return tag == null ? 0 : tag.getInt(TAG_FOCUS_Z);
+	}
+
+	public static boolean hasDay3Log(ItemStack stack) {
+		CompoundTag tag = stack.getTag();
+		return tag != null && tag.getBoolean(TAG_DAY3);
+	}
+
+	public static void markDay3Log(ItemStack stack) {
+		stack.getOrCreateTag().putBoolean(TAG_DAY3, true);
 	}
 
 	public static String getSubjectId(ItemStack stack) {
