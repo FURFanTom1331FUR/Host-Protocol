@@ -15,10 +15,11 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 /**
- * Host Protocol field unit (КПК / PDA). Opens a readable Day-1 briefing.
+ * Host Protocol field unit (КПК / PDA). Opens Day-1 briefing and later protocol logs.
  */
 public class PdaItem extends Item {
 	public static final String TAG_SUBJECT = "SubjectId";
+	public static final String TAG_DAY2 = "Day2Log";
 
 	public PdaItem(Properties properties) {
 		super(properties);
@@ -28,6 +29,15 @@ public class PdaItem extends Item {
 		ItemStack stack = new ItemStack(ModItems.PDA);
 		stack.getOrCreateTag().putString(TAG_SUBJECT, subjectId);
 		return stack;
+	}
+
+	public static boolean hasDay2Log(ItemStack stack) {
+		CompoundTag tag = stack.getTag();
+		return tag != null && tag.getBoolean(TAG_DAY2);
+	}
+
+	public static void markDay2Log(ItemStack stack) {
+		stack.getOrCreateTag().putBoolean(TAG_DAY2, true);
 	}
 
 	public static String getSubjectId(ItemStack stack) {

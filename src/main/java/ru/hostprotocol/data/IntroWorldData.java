@@ -8,13 +8,15 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 import ru.hostprotocol.HostProtocolMod;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
 /**
- * Per-world intro state: stable subject ID + whether splash/credits already shown.
+ * Per-world Host Protocol state: subject ID, intro, PDA grants, day announcements, PDA logs.
  */
 public class IntroWorldData extends SavedData {
 	public static final String DATA_NAME = HostProtocolMod.MOD_ID + "_intro";
@@ -26,6 +28,9 @@ public class IntroWorldData extends SavedData {
 	private boolean introCompleted;
 	private boolean pdaPlacedAtSpawn;
 	private final Set<UUID> pdaRecipients = new HashSet<>();
+	private final Set<UUID> pdaDelivered = new HashSet<>();
+	private final Set<UUID> day2Logs = new HashSet<>();
+	private final Map<UUID, Integer> lastAnnouncedDays = new HashMap<>();
 
 	public IntroWorldData() {
 		this.subjectId = generateSubjectId();
@@ -50,11 +55,16 @@ public class IntroWorldData extends SavedData {
 		boolean done = tag.getBoolean("IntroCompleted");
 		IntroWorldData data = new IntroWorldData(id, done);
 		data.pdaPlacedAtSpawn = tag.getBoolean("PdaPlacedAtSpawn");
-		if (tag.contains("PdaRecipients", Tag.TAG_LIST)) {
-			ListTag list = tag.getList("PdaRecipients", Tag.TAG_STRING);
+		readUuidSet(tag, "PdaRecipients", data.pdaRecipients);
+		readUuidSet(tag, "PdaDelivered", data.pdaDelivered);
+		readUuidSet(tag, "Day2Logs", data.day2Logs);
+		if (tag.contains("LastAnnouncedDays", Tag.TAG_LIST)) {
+			ListTag list = tag.getList("LastAnnouncedDays", Tag.TAG_COMPOUND);
 			for (int i = 0; i < list.size(); i++) {
+				CompoundTag entry = list.getCompound(i);
 				try {
-					data.pdaRecipients.add(UUID.fromString(list.getString(i)));
+					UUID uuid = UUID.fromString(entry.getString("Id"));
+					data.lastAnnouncedDays.put(uuid, entry.getInt("Day"));
 				} catch (IllegalArgumentException ignored) {
 					// skip corrupt UUID
 				}
@@ -68,12 +78,40 @@ public class IntroWorldData extends SavedData {
 		tag.putString("SubjectId", subjectId);
 		tag.putBoolean("IntroCompleted", introCompleted);
 		tag.putBoolean("PdaPlacedAtSpawn", pdaPlacedAtSpawn);
-		ListTag recipients = new ListTag();
-		for (UUID id : pdaRecipients) {
-			recipients.add(StringTag.valueOf(id.toString()));
+		writeUuidSet(tag, "PdaRecipients", pdaRecipients);
+		writeUuidSet(tag, "PdaDelivered", pdaDelivered);
+		writeUuidSet(tag, "Day2Logs", day2Logs);
+		ListTag announced = new ListTag();
+		for (Map.Entry<UUID, Integer> entry : lastAnnouncedDays.entrySet()) {
+			CompoundTag row = new CompoundTag();
+			row.putString("Id", entry.getKey().toString());
+			row.putInt("Day", entry.getValue());
+			announced.add(row);
 		}
-		tag.put("PdaRecipients", recipients);
+		tag.put("LastAnnouncedDays", announced);
 		return tag;
+	}
+
+	private static void writeUuidSet(CompoundTag tag, String key, Set<UUID> ids) {
+		ListTag list = new ListTag();
+		for (UUID id : ids) {
+			list.add(StringTag.valueOf(id.toString()));
+		}
+		tag.put(key, list);
+	}
+
+	private static void readUuidSet(CompoundTag tag, String key, Set<UUID> dest) {
+		if (!tag.contains(key, Tag.TAG_LIST)) {
+			return;
+		}
+		ListTag list = tag.getList(key, Tag.TAG_STRING);
+		for (int i = 0; i < list.size(); i++) {
+			try {
+				dest.add(UUID.fromString(list.getString(i)));
+			} catch (IllegalArgumentException ignored) {
+				// skip corrupt UUID
+			}
+		}
 	}
 
 	public String getSubjectId() {
@@ -91,7 +129,7 @@ public class IntroWorldData extends SavedData {
 		}
 	}
 
-	/** Testing helper: play the intro again in this world. Does not reset PDA grants. */
+	/** Testing helper: play the intro again in this world. Does not reset PDA grants or day logs. */
 	public void resetIntroCompleted() {
 		if (introCompleted) {
 			introCompleted = false;
@@ -109,15 +147,44 @@ public class IntroWorldData extends SavedData {
 		}
 	}
 
-	public boolean isPdaPlacedAtSpawn() {
-		return pdaPlacedAtSpawn;
+	public boolean hasDeliveredPda(UUID playerId) {
+		return pdaDelivered.contains(playerId);
 	}
 
-	public void markPdaPlacedAtSpawn() {
-		if (!pdaPlacedAtSpawn) {
-			pdaPlacedAtSpawn = true;
+	public void markPdaDelivered(UUID playerId) {
+		boolean changed = pdaDelivered.add(playerId);
+		changed |= pdaRecipients.add(playerId);
+		if (changed) {
 			setDirty();
 		}
+	}
+
+	public boolean hasDay2Log(UUID playerId) {
+		return day2Logs.contains(playerId);
+	}
+
+	/** @return true if this was the first unlock for the player */
+	public boolean markDay2Log(UUID playerId) {
+		if (day2Logs.add(playerId)) {
+			setDirty();
+			return true;
+		}
+		return false;
+	}
+
+	public int getLastAnnouncedDay(UUID playerId) {
+		return lastAnnouncedDays.getOrDefault(playerId, 0);
+	}
+
+	public void setLastAnnouncedDay(UUID playerId, int day) {
+		Integer previous = lastAnnouncedDays.put(playerId, day);
+		if (previous == null || previous != day) {
+			setDirty();
+		}
+	}
+
+	public boolean isPdaPlacedAtSpawn() {
+		return pdaPlacedAtSpawn;
 	}
 
 	/** Example format from design: С231А */
