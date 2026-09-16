@@ -14,6 +14,9 @@ public final class ModSounds {
 	public static final SoundEvent VOICE_GLITCH_HIT = create("voice.glitch_hit");
 	public static final SoundEvent VOICE_GLITCH_STATIC = create("voice.glitch_static");
 	public static final SoundEvent VOICE_MATERIALIZE_HUM = create("voice.materialize_hum");
+	public static final SoundEvent VOICE_SYSTEM_ERROR = create("voice.system_error");
+	public static final SoundEvent VOICE_SYSTEM_ERROR_SHORT = create("voice.system_error_short");
+	public static final SoundEvent VOICE_BUNKER_SIREN = create("voice.bunker_siren");
 
 	private ModSounds() {}
 
@@ -30,6 +33,9 @@ public final class ModSounds {
 		register(VOICE_GLITCH_HIT);
 		register(VOICE_GLITCH_STATIC);
 		register(VOICE_MATERIALIZE_HUM);
+		register(VOICE_SYSTEM_ERROR);
+		register(VOICE_SYSTEM_ERROR_SHORT);
+		register(VOICE_BUNKER_SIREN);
 	}
 
 	private static void register(SoundEvent event) {

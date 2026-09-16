@@ -25,6 +25,8 @@ public class PdaItem extends Item {
 	public static final String TAG_FOCUS_Y = "FocusY";
 	public static final String TAG_FOCUS_Z = "FocusZ";
 	public static final String TAG_DAY3 = "Day3Log";
+	public static final String TAG_SYSTEM_ERROR = "SystemErrorLog";
+	public static final String TAG_BLUEPRINTS = "BlueprintsUnlocked";
 
 	public PdaItem(Properties properties) {
 		super(properties);
@@ -81,6 +83,24 @@ public class PdaItem extends Item {
 
 	public static void markDay3Log(ItemStack stack) {
 		stack.getOrCreateTag().putBoolean(TAG_DAY3, true);
+	}
+
+	public static boolean hasSystemErrorLog(ItemStack stack) {
+		CompoundTag tag = stack.getTag();
+		return tag != null && tag.getBoolean(TAG_SYSTEM_ERROR);
+	}
+
+	public static void markSystemErrorLog(ItemStack stack) {
+		stack.getOrCreateTag().putBoolean(TAG_SYSTEM_ERROR, true);
+	}
+
+	public static boolean hasBlueprints(ItemStack stack) {
+		CompoundTag tag = stack.getTag();
+		return tag != null && tag.getBoolean(TAG_BLUEPRINTS);
+	}
+
+	public static void markBlueprints(ItemStack stack) {
+		stack.getOrCreateTag().putBoolean(TAG_BLUEPRINTS, true);
 	}
 
 	public static String getSubjectId(ItemStack stack) {

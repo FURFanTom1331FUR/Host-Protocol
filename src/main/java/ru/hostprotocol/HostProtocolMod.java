@@ -21,6 +21,7 @@ import ru.hostprotocol.block.ModBlocks;
 import ru.hostprotocol.data.IntroWorldData;
 import ru.hostprotocol.freeze.IntroFreeze;
 import ru.hostprotocol.infection.InfectionTicker;
+import ru.hostprotocol.infection.MetaBreachController;
 import ru.hostprotocol.infection.SepticLinkController;
 import ru.hostprotocol.item.ModItems;
 import ru.hostprotocol.item.PdaService;
@@ -59,6 +60,7 @@ public class HostProtocolMod implements ModInitializer {
 			ProtocolDayTracker.tick(server);
 			InfectionTicker.tick(server);
 			SepticLinkController.tick(server);
+			MetaBreachController.tryArm(server, IntroWorldData.get(server.overworld()));
 		});
 
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
@@ -74,6 +76,7 @@ public class HostProtocolMod implements ModInitializer {
 			}
 			ModNetworking.sendIntroState(player, data.getSubjectId(), data.isIntroCompleted());
 			ModNetworking.sendProtocolState(player, data);
+			MetaBreachController.onPlayerJoin(player, data);
 		});
 
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> IntroFreeze.end(handler.player));
@@ -89,7 +92,7 @@ public class HostProtocolMod implements ModInitializer {
 			});
 		});
 
-		LOGGER.info("Host Protocol initialized (intro + PDA + day tracker + Day-2 infection)");
+		LOGGER.info("Host Protocol initialized (intro + PDA + day tracker + Day-2 infection + breach)");
 	}
 
 	private static void registerInfectionGuards() {
@@ -147,6 +150,24 @@ public class HostProtocolMod implements ModInitializer {
 									LOGGER.info("Intro replay requested by {}; subject={}", player.getGameProfile().getName(), data.getSubjectId());
 									return 1;
 								}))
+						.then(Commands.literal("forcecoords")
+								.executes(ctx -> {
+									ServerPlayer player = ctx.getSource().getPlayerOrException();
+									var server = player.serverLevel().getServer();
+									IntroWorldData data = IntroWorldData.get(server.overworld());
+									InfectionTicker.forceActivate(server.overworld(), data);
+									InfectionTicker.unlockCoords(server, data, true);
+									ctx.getSource().sendSuccess(() -> Component.translatable("hostprotocol.command.forcecoords",
+											data.getFocusX(), data.getFocusY(), data.getFocusZ()), true);
+									return 1;
+								}))
+						.then(Commands.literal("forceseptic")
+								.executes(ctx -> {
+									ServerPlayer player = ctx.getSource().getPlayerOrException();
+									SepticLinkController.forcePlay(player);
+									ctx.getSource().sendSuccess(() -> Component.translatable("hostprotocol.command.forceseptic"), true);
+									return 1;
+								}))
 						.then(Commands.literal("status")
 								.executes(ctx -> {
 									ServerPlayer player = ctx.getSource().getPlayerOrException();
@@ -171,6 +192,21 @@ public class HostProtocolMod implements ModInitializer {
 											focus,
 											data.isCoordsDiscovered(),
 											data.hasSepticLinkAttempted()
+									), false);
+									long gameTime = player.serverLevel().getServer().overworld().getGameTime();
+									long coordsIn = data.isCoordsDiscovered() || data.getCoordsUnlockAtGameTime() <= 0L
+											? 0L
+											: Math.max(0L, data.getCoordsUnlockAtGameTime() - gameTime);
+									long septicIn = data.hasSepticLinkAttempted() || data.getSepticAutoAtGameTime() <= 0L
+											? 0L
+											: Math.max(0L, data.getSepticAutoAtGameTime() - gameTime);
+									ctx.getSource().sendSuccess(() -> Component.translatable(
+											"hostprotocol.command.status.breach",
+											data.isProtocolBreached(),
+											data.hasSystemErrorLog(player.getUUID()),
+											data.hasBlueprints(player.getUUID()),
+											coordsIn,
+											septicIn
 									), false);
 									return day;
 								}))

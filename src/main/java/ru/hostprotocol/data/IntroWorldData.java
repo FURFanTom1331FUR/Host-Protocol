@@ -18,7 +18,7 @@ import java.util.UUID;
 
 /**
  * Per-world Host Protocol state: subject ID, intro, PDA grants, day announcements, PDA logs,
- * infection focus, and the Night-2 Septic handshake flag.
+ * infection focus, Night-2 Septic handshake, and the post-coords+handshake protocol breach.
  */
 public class IntroWorldData extends SavedData {
 	public static final String DATA_NAME = HostProtocolMod.MOD_ID + "_intro";
@@ -34,6 +34,9 @@ public class IntroWorldData extends SavedData {
 	private final Set<UUID> day2Logs = new HashSet<>();
 	private final Set<UUID> day2CoordsLogs = new HashSet<>();
 	private final Set<UUID> day3Logs = new HashSet<>();
+	private final Set<UUID> systemErrorLogs = new HashSet<>();
+	private final Set<UUID> blueprintLogs = new HashSet<>();
+	private final Set<UUID> breachAcknowledged = new HashSet<>();
 	private final Map<UUID, Integer> lastAnnouncedDays = new HashMap<>();
 
 	private boolean infectionActive;
@@ -42,8 +45,12 @@ public class IntroWorldData extends SavedData {
 	private int focusY;
 	private int focusZ;
 	private long infectionStartDayTime;
+	private long infectionStartGameTime;
+	private long coordsUnlockAtGameTime;
+	private long septicAutoAtGameTime;
 	private boolean coordsDiscovered;
 	private boolean septicLinkAttempted;
+	private boolean protocolBreached;
 	private boolean forcedChunksArmed;
 
 	public IntroWorldData() {
@@ -74,6 +81,9 @@ public class IntroWorldData extends SavedData {
 		readUuidSet(tag, "Day2Logs", data.day2Logs);
 		readUuidSet(tag, "Day2CoordsLogs", data.day2CoordsLogs);
 		readUuidSet(tag, "Day3Logs", data.day3Logs);
+		readUuidSet(tag, "SystemErrorLogs", data.systemErrorLogs);
+		readUuidSet(tag, "BlueprintLogs", data.blueprintLogs);
+		readUuidSet(tag, "BreachAcknowledged", data.breachAcknowledged);
 		if (tag.contains("LastAnnouncedDays", Tag.TAG_LIST)) {
 			ListTag list = tag.getList("LastAnnouncedDays", Tag.TAG_COMPOUND);
 			for (int i = 0; i < list.size(); i++) {
@@ -92,8 +102,12 @@ public class IntroWorldData extends SavedData {
 		data.focusY = tag.getInt("FocusY");
 		data.focusZ = tag.getInt("FocusZ");
 		data.infectionStartDayTime = tag.getLong("InfectionStartDayTime");
+		data.infectionStartGameTime = tag.getLong("InfectionStartGameTime");
+		data.coordsUnlockAtGameTime = tag.getLong("CoordsUnlockAtGameTime");
+		data.septicAutoAtGameTime = tag.getLong("SepticAutoAtGameTime");
 		data.coordsDiscovered = tag.getBoolean("CoordsDiscovered");
 		data.septicLinkAttempted = tag.getBoolean("SepticLinkAttempted");
+		data.protocolBreached = tag.getBoolean("ProtocolBreached");
 		data.forcedChunksArmed = tag.getBoolean("ForcedChunksArmed");
 		return data;
 	}
@@ -108,6 +122,9 @@ public class IntroWorldData extends SavedData {
 		writeUuidSet(tag, "Day2Logs", day2Logs);
 		writeUuidSet(tag, "Day2CoordsLogs", day2CoordsLogs);
 		writeUuidSet(tag, "Day3Logs", day3Logs);
+		writeUuidSet(tag, "SystemErrorLogs", systemErrorLogs);
+		writeUuidSet(tag, "BlueprintLogs", blueprintLogs);
+		writeUuidSet(tag, "BreachAcknowledged", breachAcknowledged);
 		ListTag announced = new ListTag();
 		for (Map.Entry<UUID, Integer> entry : lastAnnouncedDays.entrySet()) {
 			CompoundTag row = new CompoundTag();
@@ -122,8 +139,12 @@ public class IntroWorldData extends SavedData {
 		tag.putInt("FocusY", focusY);
 		tag.putInt("FocusZ", focusZ);
 		tag.putLong("InfectionStartDayTime", infectionStartDayTime);
+		tag.putLong("InfectionStartGameTime", infectionStartGameTime);
+		tag.putLong("CoordsUnlockAtGameTime", coordsUnlockAtGameTime);
+		tag.putLong("SepticAutoAtGameTime", septicAutoAtGameTime);
 		tag.putBoolean("CoordsDiscovered", coordsDiscovered);
 		tag.putBoolean("SepticLinkAttempted", septicLinkAttempted);
+		tag.putBoolean("ProtocolBreached", protocolBreached);
 		tag.putBoolean("ForcedChunksArmed", forcedChunksArmed);
 		return tag;
 	}
@@ -249,6 +270,42 @@ public class IntroWorldData extends SavedData {
 		return false;
 	}
 
+	public boolean hasSystemErrorLog(UUID playerId) {
+		return systemErrorLogs.contains(playerId);
+	}
+
+	public boolean markSystemErrorLog(UUID playerId) {
+		if (systemErrorLogs.add(playerId)) {
+			setDirty();
+			return true;
+		}
+		return false;
+	}
+
+	public boolean hasBlueprints(UUID playerId) {
+		return blueprintLogs.contains(playerId);
+	}
+
+	public boolean markBlueprints(UUID playerId) {
+		if (blueprintLogs.add(playerId)) {
+			setDirty();
+			return true;
+		}
+		return false;
+	}
+
+	public boolean hasBreachAcknowledged(UUID playerId) {
+		return breachAcknowledged.contains(playerId);
+	}
+
+	public boolean markBreachAcknowledged(UUID playerId) {
+		if (breachAcknowledged.add(playerId)) {
+			setDirty();
+			return true;
+		}
+		return false;
+	}
+
 	public int getLastAnnouncedDay(UUID playerId) {
 		return lastAnnouncedDays.getOrDefault(playerId, 0);
 	}
@@ -292,15 +349,58 @@ public class IntroWorldData extends SavedData {
 		return infectionStartDayTime;
 	}
 
-	public void activateInfection(BlockPos focus, long startDayTime) {
+	public long getInfectionStartGameTime() {
+		return infectionStartGameTime;
+	}
+
+	public long getCoordsUnlockAtGameTime() {
+		return coordsUnlockAtGameTime;
+	}
+
+	public long getSepticAutoAtGameTime() {
+		return septicAutoAtGameTime;
+	}
+
+	public void setSepticAutoAtGameTime(long gameTime) {
+		if (this.septicAutoAtGameTime != gameTime) {
+			this.septicAutoAtGameTime = gameTime;
+			setDirty();
+		}
+	}
+
+	public void activateInfection(BlockPos focus, long startDayTime, long startGameTime, long coordsUnlockAt) {
 		this.infectionActive = true;
 		this.infectionFocusSet = true;
 		this.focusX = focus.getX();
 		this.focusY = focus.getY();
 		this.focusZ = focus.getZ();
 		this.infectionStartDayTime = startDayTime;
+		this.infectionStartGameTime = startGameTime;
+		this.coordsUnlockAtGameTime = coordsUnlockAt;
 		this.forcedChunksArmed = false;
 		setDirty();
+	}
+
+	/**
+	 * Worlds saved before gameTime clocks existed still get a fair real-time wait from first tick
+	 * after the update, plus whatever dayTime fallback they already accumulated.
+	 */
+	public void ensureInfectionClocks(long gameTime, long seed) {
+		if (!infectionActive) {
+			return;
+		}
+		boolean dirty = false;
+		if (infectionStartGameTime <= 0L) {
+			infectionStartGameTime = gameTime;
+			dirty = true;
+		}
+		if (coordsUnlockAtGameTime <= 0L && !coordsDiscovered) {
+			coordsUnlockAtGameTime = infectionStartGameTime + ru.hostprotocol.world.ProtocolTime.coordsLockGameDelay(seed);
+			dirty = true;
+		}
+		if (dirty) {
+			setDirty();
+		}
 	}
 
 	public boolean isCoordsDiscovered() {
@@ -323,6 +423,19 @@ public class IntroWorldData extends SavedData {
 	public boolean markSepticLinkAttempted() {
 		if (!septicLinkAttempted) {
 			septicLinkAttempted = true;
+			setDirty();
+			return true;
+		}
+		return false;
+	}
+
+	public boolean isProtocolBreached() {
+		return protocolBreached;
+	}
+
+	public boolean markProtocolBreached() {
+		if (!protocolBreached) {
+			protocolBreached = true;
 			setDirty();
 			return true;
 		}

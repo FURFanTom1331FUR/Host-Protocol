@@ -3,8 +3,10 @@ package ru.hostprotocol.client.screen;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.item.ItemStack;
+import ru.hostprotocol.HostProtocolMod;
 import ru.hostprotocol.client.ProtocolClientState;
 import ru.hostprotocol.client.fx.GlitchRenderer;
 import ru.hostprotocol.item.PdaItem;
@@ -13,12 +15,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Host Protocol PDA: Day-1 briefing, Day-2 infection log (coords when locked), Day-3 Septic residue.
+ * Host Protocol PDA: Day-1 briefing, Day-2 infection log, Day-3 Septic residue,
+ * post-breach system fault, scanner blueprint.
  */
 public class PdaScreen extends Screen {
 	private enum Section {
-		DAY1, DAY2, DAY3
+		DAY1, DAY2, DAY3, SYSTEM, BLUEPRINT
 	}
+
+	private static final ResourceLocation BLUEPRINT_TEX = new ResourceLocation(HostProtocolMod.MOD_ID, "textures/gui/scanner_blueprint.png");
 
 	private static final String[] DAY1_KEYS = {
 			"hostprotocol.pda.page1",
@@ -36,6 +41,13 @@ public class PdaScreen extends Screen {
 			"hostprotocol.pda.day3.page3",
 			"hostprotocol.pda.day3.page4"
 	};
+	private static final String[] SYSTEM_KEYS = {
+			"hostprotocol.pda.system.page1",
+			"hostprotocol.pda.system.page2"
+	};
+	private static final String[] BLUEPRINT_KEYS = {
+			"hostprotocol.pda.blueprint.page1"
+	};
 
 	private static final int PANEL_COLOR = 0xE80A0A0E;
 	private static final int BORDER = GlitchRenderer.PURPLE;
@@ -47,6 +59,8 @@ public class PdaScreen extends Screen {
 	private final String subjectId;
 	private final boolean day2Unlocked;
 	private final boolean day3Unlocked;
+	private final boolean systemUnlocked;
+	private final boolean blueprintUnlocked;
 	private final boolean coordsLocked;
 	private final String coordsText;
 	private final String garbledId;
@@ -58,6 +72,8 @@ public class PdaScreen extends Screen {
 		this.subjectId = PdaItem.getSubjectId(stack);
 		this.day2Unlocked = PdaItem.hasDay2Log(stack) || ProtocolClientState.hasDay2Log();
 		this.day3Unlocked = PdaItem.hasDay3Log(stack) || ProtocolClientState.hasDay3Log();
+		this.systemUnlocked = PdaItem.hasSystemErrorLog(stack) || ProtocolClientState.hasSystemErrorLog();
+		this.blueprintUnlocked = PdaItem.hasBlueprints(stack) || ProtocolClientState.hasBlueprints();
 		this.coordsLocked = PdaItem.hasDay2Coords(stack) || ProtocolClientState.hasDay2Coords();
 		if (PdaItem.hasDay2Coords(stack)) {
 			this.coordsText = PdaItem.getFocusX(stack) + " / " + PdaItem.getFocusY(stack) + " / " + PdaItem.getFocusZ(stack);
@@ -67,14 +83,19 @@ public class PdaScreen extends Screen {
 			this.coordsText = Component.translatable("hostprotocol.pda.coords.pending").getString();
 		}
 		this.garbledId = ProtocolClientState.garbledSubjectId();
+		if (systemUnlocked) {
+			this.section = Section.SYSTEM;
+		} else if (day2Unlocked) {
+			this.section = Section.DAY2;
+		}
 	}
 
 	@Override
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		this.renderBackground(graphics);
 
-		int panelW = Math.min(320, this.width - 32);
-		int panelH = Math.min(220, this.height - 32);
+		int panelW = Math.min(340, this.width - 32);
+		int panelH = Math.min(240, this.height - 32);
 		int x = (this.width - panelW) / 2;
 		int y = (this.height - panelH) / 2;
 
@@ -90,15 +111,31 @@ public class PdaScreen extends Screen {
 		int tabX = x + 8;
 		tabX = renderTab(graphics, tabX, tabY, Component.translatable("hostprotocol.pda.tab.day1"), section == Section.DAY1, mouseX, mouseY);
 		if (day2Unlocked) {
-			tabX = renderTab(graphics, tabX + 6, tabY, Component.translatable("hostprotocol.pda.tab.day2"), section == Section.DAY2, mouseX, mouseY);
+			tabX = renderTab(graphics, tabX + 4, tabY, Component.translatable("hostprotocol.pda.tab.day2"), section == Section.DAY2, mouseX, mouseY);
 		}
 		if (day3Unlocked) {
-			renderTab(graphics, tabX + 6, tabY, Component.translatable("hostprotocol.pda.tab.day3"), section == Section.DAY3, mouseX, mouseY);
+			tabX = renderTab(graphics, tabX + 4, tabY, Component.translatable("hostprotocol.pda.tab.day3"), section == Section.DAY3, mouseX, mouseY);
+		}
+		if (systemUnlocked) {
+			tabX = renderTab(graphics, tabX + 4, tabY, Component.translatable("hostprotocol.pda.tab.system"), section == Section.SYSTEM, mouseX, mouseY);
+		}
+		if (blueprintUnlocked) {
+			renderTab(graphics, tabX + 4, tabY, Component.translatable("hostprotocol.pda.tab.blueprint"), section == Section.BLUEPRINT, mouseX, mouseY);
 		}
 
 		int textX = x + 10;
 		int textY = tabY + TAB_H + 8;
 		int textW = panelW - 20;
+
+		if (section == Section.BLUEPRINT) {
+			int img = Math.min(96, panelH - 88);
+			int ix = x + panelW - 12 - img;
+			int iy = textY;
+			graphics.fill(ix - 1, iy - 1, ix + img + 1, iy + img + 1, BORDER);
+			graphics.blit(BLUEPRINT_TEX, ix, iy, img, img, 0.0F, 0.0F, 256, 256, 256, 256);
+			textW = Math.max(80, ix - textX - 8);
+		}
+
 		List<FormattedCharSequence> lines = wrapPage(textW);
 		int maxLines = Math.max(1, (panelH - (textY - y) - 28) / 11);
 		int shown = Math.min(maxLines, lines.size());
@@ -141,6 +178,8 @@ public class PdaScreen extends Screen {
 			case DAY1 -> DAY1_KEYS;
 			case DAY2 -> DAY2_KEYS;
 			case DAY3 -> DAY3_KEYS;
+			case SYSTEM -> SYSTEM_KEYS;
+			case BLUEPRINT -> BLUEPRINT_KEYS;
 		};
 	}
 
@@ -169,41 +208,59 @@ public class PdaScreen extends Screen {
 		if (section == Section.DAY3) {
 			return Component.translatable(key, subjectId, garbledId).getString();
 		}
+		if (section == Section.SYSTEM || section == Section.BLUEPRINT) {
+			return Component.translatable(key, subjectId).getString();
+		}
 		return Component.translatable(key, subjectId).getString();
 	}
 
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {
-		int panelW = Math.min(320, this.width - 32);
-		int panelH = Math.min(220, this.height - 32);
+		int panelW = Math.min(340, this.width - 32);
+		int panelH = Math.min(240, this.height - 32);
 		int x = (this.width - panelW) / 2;
 		int y = (this.height - panelH) / 2;
 		int tabY = y + 32;
 		int tabX = x + 8;
-		Component day1 = Component.translatable("hostprotocol.pda.tab.day1");
-		int tab1W = tabWidth(day1);
-		if (inside(mouseX, mouseY, tabX, tabY, tab1W, TAB_H)) {
-			selectSection(Section.DAY1);
+		tabX = hitTab(mouseX, mouseY, tabX, tabY, Component.translatable("hostprotocol.pda.tab.day1"), Section.DAY1);
+		if (tabX < 0) {
 			return true;
 		}
-		tabX += tab1W + 6;
 		if (day2Unlocked) {
-			int tab2W = tabWidth(Component.translatable("hostprotocol.pda.tab.day2"));
-			if (inside(mouseX, mouseY, tabX, tabY, tab2W, TAB_H)) {
-				selectSection(Section.DAY2);
+			tabX = hitTab(mouseX, mouseY, tabX + 4, tabY, Component.translatable("hostprotocol.pda.tab.day2"), Section.DAY2);
+			if (tabX < 0) {
 				return true;
 			}
-			tabX += tab2W + 6;
 		}
 		if (day3Unlocked) {
-			int tab3W = tabWidth(Component.translatable("hostprotocol.pda.tab.day3"));
-			if (inside(mouseX, mouseY, tabX, tabY, tab3W, TAB_H)) {
-				selectSection(Section.DAY3);
+			tabX = hitTab(mouseX, mouseY, tabX + 4, tabY, Component.translatable("hostprotocol.pda.tab.day3"), Section.DAY3);
+			if (tabX < 0) {
+				return true;
+			}
+		}
+		if (systemUnlocked) {
+			tabX = hitTab(mouseX, mouseY, tabX + 4, tabY, Component.translatable("hostprotocol.pda.tab.system"), Section.SYSTEM);
+			if (tabX < 0) {
+				return true;
+			}
+		}
+		if (blueprintUnlocked) {
+			tabX = hitTab(mouseX, mouseY, tabX + 4, tabY, Component.translatable("hostprotocol.pda.tab.blueprint"), Section.BLUEPRINT);
+			if (tabX < 0) {
 				return true;
 			}
 		}
 		advance();
 		return true;
+	}
+
+	private int hitTab(double mouseX, double mouseY, int tabX, int tabY, Component label, Section target) {
+		int tw = tabWidth(label);
+		if (inside(mouseX, mouseY, tabX, tabY, tw, TAB_H)) {
+			selectSection(target);
+			return -1;
+		}
+		return tabX + tw;
 	}
 
 	private static boolean inside(double mx, double my, int x, int y, int w, int h) {
@@ -226,34 +283,50 @@ public class PdaScreen extends Screen {
 		if (keyCode == 263) { // left
 			if (page > 0) {
 				page--;
-			} else if (section == Section.DAY3) {
-				selectSection(day2Unlocked ? Section.DAY2 : Section.DAY1);
-				page = currentKeys().length - 1;
-			} else if (section == Section.DAY2) {
-				selectSection(Section.DAY1);
-				page = DAY1_KEYS.length - 1;
+			} else {
+				Section prev = previousSection();
+				if (prev != null) {
+					selectSection(prev);
+					page = currentKeys().length - 1;
+				}
 			}
 			return true;
 		}
 		if (keyCode == 265 || keyCode == 87) { // up / W
-			if (section == Section.DAY3) {
-				selectSection(day2Unlocked ? Section.DAY2 : Section.DAY1);
-			} else if (section == Section.DAY2) {
-				selectSection(Section.DAY1);
+			Section prev = previousSection();
+			if (prev != null) {
+				selectSection(prev);
 			}
 			return true;
 		}
 		if (keyCode == 264 || keyCode == 83) { // down / S
-			if (section == Section.DAY1 && day2Unlocked) {
-				selectSection(Section.DAY2);
-			} else if (section == Section.DAY2 && day3Unlocked) {
-				selectSection(Section.DAY3);
-			} else if (section == Section.DAY1 && day3Unlocked && !day2Unlocked) {
-				selectSection(Section.DAY3);
+			Section next = nextSection();
+			if (next != null) {
+				selectSection(next);
 			}
 			return true;
 		}
 		return super.keyPressed(keyCode, scanCode, modifiers);
+	}
+
+	private Section previousSection() {
+		return switch (section) {
+			case BLUEPRINT -> systemUnlocked ? Section.SYSTEM : (day3Unlocked ? Section.DAY3 : (day2Unlocked ? Section.DAY2 : Section.DAY1));
+			case SYSTEM -> day3Unlocked ? Section.DAY3 : (day2Unlocked ? Section.DAY2 : Section.DAY1);
+			case DAY3 -> day2Unlocked ? Section.DAY2 : Section.DAY1;
+			case DAY2 -> Section.DAY1;
+			case DAY1 -> null;
+		};
+	}
+
+	private Section nextSection() {
+		return switch (section) {
+			case DAY1 -> day2Unlocked ? Section.DAY2 : (day3Unlocked ? Section.DAY3 : (systemUnlocked ? Section.SYSTEM : (blueprintUnlocked ? Section.BLUEPRINT : null)));
+			case DAY2 -> day3Unlocked ? Section.DAY3 : (systemUnlocked ? Section.SYSTEM : (blueprintUnlocked ? Section.BLUEPRINT : null));
+			case DAY3 -> systemUnlocked ? Section.SYSTEM : (blueprintUnlocked ? Section.BLUEPRINT : null);
+			case SYSTEM -> blueprintUnlocked ? Section.BLUEPRINT : null;
+			case BLUEPRINT -> null;
+		};
 	}
 
 	private void advance() {
@@ -262,12 +335,9 @@ public class PdaScreen extends Screen {
 			page++;
 			return;
 		}
-		if (section == Section.DAY1 && day2Unlocked) {
-			selectSection(Section.DAY2);
-			return;
-		}
-		if (section == Section.DAY2 && day3Unlocked) {
-			selectSection(Section.DAY3);
+		Section next = nextSection();
+		if (next != null) {
+			selectSection(next);
 			return;
 		}
 		onClose();

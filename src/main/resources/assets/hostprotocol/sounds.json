@@ -58,5 +58,32 @@
 				"name": "hostprotocol:voice/materialize_hum"
 			}
 		]
+	},
+	"voice.system_error": {
+		"subtitle": "subtitles.hostprotocol.voice.system_error",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/system_error",
+				"stream": true
+			}
+		]
+	},
+	"voice.system_error_short": {
+		"subtitle": "subtitles.hostprotocol.voice.system_error_short",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/system_error_short",
+				"stream": true
+			}
+		]
+	},
+	"voice.bunker_siren": {
+		"subtitle": "subtitles.hostprotocol.voice.bunker_siren",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/bunker_siren",
+				"stream": true
+			}
+		]
 	}
 }
