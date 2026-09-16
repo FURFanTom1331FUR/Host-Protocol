@@ -1,10 +1,12 @@
 package ru.hostprotocol;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,11 +26,11 @@ public class HostProtocolMod implements ModInitializer {
 	public void onInitialize() {
 		ModSounds.register();
 		ModNetworking.registerServer();
+		registerCommands();
 
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			ServerPlayer player = handler.player;
-			ServerLevel overworld = server.overworld();
-			IntroWorldData data = IntroWorldData.get(overworld);
+			IntroWorldData data = IntroWorldData.get(server.overworld());
 			ModNetworking.sendIntroState(player, data.getSubjectId(), data.isIntroCompleted());
 		});
 
@@ -40,6 +42,22 @@ public class HostProtocolMod implements ModInitializer {
 			});
 		});
 
-		LOGGER.info("Host Protocol initialized (intro MVP)");
+		LOGGER.info("Host Protocol initialized (intro + materialize)");
+	}
+
+	private static void registerCommands() {
+		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(
+				Commands.literal("hostprotocol")
+						.then(Commands.literal("replayintro")
+								.executes(ctx -> {
+									ServerPlayer player = ctx.getSource().getPlayerOrException();
+									IntroWorldData data = IntroWorldData.get(player.serverLevel().getServer().overworld());
+									data.resetIntroCompleted();
+									ModNetworking.sendIntroState(player, data.getSubjectId(), false);
+									ctx.getSource().sendSuccess(() -> Component.translatable("hostprotocol.command.replayintro"), true);
+									LOGGER.info("Intro replay requested by {}; subject={}", player.getGameProfile().getName(), data.getSubjectId());
+									return 1;
+								}))
+		));
 	}
 }

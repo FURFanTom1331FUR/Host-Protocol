@@ -25,5 +25,38 @@
 				"stream": true
 			}
 		]
+	},
+	"voice.materialize": {
+		"subtitle": "subtitles.hostprotocol.voice.materialize",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/materialize",
+				"stream": true
+			}
+		]
+	},
+	"voice.glitch_hit": {
+		"subtitle": "subtitles.hostprotocol.voice.glitch_hit",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/glitch_hit"
+			}
+		]
+	},
+	"voice.glitch_static": {
+		"subtitle": "subtitles.hostprotocol.voice.glitch_static",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/glitch_static"
+			}
+		]
+	},
+	"voice.materialize_hum": {
+		"subtitle": "subtitles.hostprotocol.voice.materialize_hum",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/materialize_hum"
+			}
+		]
 	}
 }

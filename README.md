@@ -1,6 +1,6 @@
 # Host Protocol (Fabric 1.20.1)
 
-Мод **Host Protocol** — интро MVP: заставка, титры с Испытуемым (ID на мир), текст «Ошибка подключения к системе…».
+Мод **Host Protocol** — интро: заставка, расширенные титры с Испытуемым (ID на мир), ошибка подключения и глитч-материализация персонажа.
 
 - **modid:** `hostprotocol`
 - **Minecraft:** 1.20.1
@@ -29,15 +29,21 @@ java -version
 .\gradlew.bat build
 ```
 
+Linux / macOS:
+
+```bash
+./gradlew build
+```
+
 Готовый jar:
 
 ```
-build\libs\hostprotocol-0.1.0-mvp.jar
+build/libs/hostprotocol-0.1.0-mvp.jar
 ```
 
-(имя может чуть отличаться — смотрите `build\libs\`).
+(имя может чуть отличаться — смотрите `build/libs/`).
 
-Скопируйте jar в `.minecraft\mods` вместе с **Fabric API** для 1.20.1.
+Скопируйте jar в `.minecraft/mods` вместе с **Fabric API** для 1.20.1.
 
 ## Запуск из IDE / Gradle
 
@@ -47,41 +53,54 @@ build\libs\hostprotocol-0.1.0-mvp.jar
 .\gradlew.bat runClient
 ```
 
-## Что делает интро MVP
+```bash
+./gradlew runClient
+```
 
-1. При входе в мир (один раз на мир) — чёрный экран с **HOST PROTOCOL**.
-2. «Нажмите, чтобы продолжить».
-3. Титры на русском с **Испытуемый {ID}** (ID вида `С231А`, сохраняется в данных мира).
-4. «Ошибка подключения к системе…», затем вход в игру.
-5. Повторно в том же мире интро не показывается.
+## Как тестировать интро (новый мир)
 
-Голосовые `SoundEvent` зарегистрированы; положите OGG в:
+Интро показывается **один раз на мир**. Для полного прогона:
+
+1. Соберите мод (`./gradlew build`) и положите jar + Fabric API 1.20.1 в `mods`.
+2. Запустите Minecraft 1.20.1 (Fabric).
+3. Создайте **новый мир** (не заходите в уже существующий, если интро там уже прошло).
+4. Ожидаемая последовательность:
+   1. Чёрный экран **HOST PROTOCOL** / «Подключение…» / «Нажмите, чтобы продолжить».
+   2. Титры (строка 1 — **Испытуемый {ID}**, дальше расширенный лор).
+   3. «Ошибка подключения к системе. Внедрение испытуемого…»
+   4. **Материализация** (~2–4 с): scanlines, джиттер, фиолетово-чёрные вспышки (`#7b2cbf`), текст «Материализация испытуемого {ID}», голос + hum/static/glitch.
+   5. Камера на мгновение в третьем лице, персонаж «собирается» с глитчем; после закрытия экрана — частицы (portal / end_rod / smoke) ~2 с и затухание оверлея.
+5. Повторный вход в **тот же** мир интро не показывает.
+
+Повтор без нового мира (для отладки):
+
+```
+/hostprotocol replayintro
+```
+
+Команда сбрасывает флаг интро у мира и запускает сцену снова.
+
+## Голос / SFX
+
+Зарегистрированы `SoundEvent` и лежат OGG:
 
 ```
 src/main/resources/assets/hostprotocol/sounds/voice/
   intro_title.ogg
   intro_credits.ogg
   connection_error.ogg
+  materialize.ogg
+  glitch_hit.ogg
+  glitch_static.ogg
+  materialize_hum.ogg
 ```
 
 ## Структура
 
 ```
-src/main/java/ru/hostprotocol/     — сервер/общая логика, данные мира, звуки, сеть
-src/client/java/ru/hostprotocol/   — клиент, IntroScreen
+src/main/java/ru/hostprotocol/     — сервер/общая логика, данные мира, звуки, сеть, /hostprotocol
+src/client/java/ru/hostprotocol/   — клиент, IntroScreen, глитч-FX материализации
 src/main/resources/assets/hostprotocol/lang/ — ru_ru + en_us
-```
-
-## Git
-
-Репозиторий на GitHub пока не создавался. Когда будете готовы:
-
-```bat
-git init
-git add .
-git commit -m "Initial Host Protocol intro MVP"
-git remote add origin <url>
-git push -u origin main
 ```
 
 ## Дизайн
