@@ -65,6 +65,14 @@ public class IntroWorldData extends SavedData {
 		}
 	}
 
+	/** Testing helper: play the intro again in this world. */
+	public void resetIntroCompleted() {
+		if (introCompleted) {
+			introCompleted = false;
+			setDirty();
+		}
+	}
+
 	/** Example format from design: С231А */
 	public static String generateSubjectId() {
 		Random random = new Random();

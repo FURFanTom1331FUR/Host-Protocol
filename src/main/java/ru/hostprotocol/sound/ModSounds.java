@@ -10,6 +10,10 @@ public final class ModSounds {
 	public static final SoundEvent VOICE_INTRO_TITLE = create("voice.intro_title");
 	public static final SoundEvent VOICE_INTRO_CREDITS = create("voice.intro_credits");
 	public static final SoundEvent VOICE_CONNECTION_ERROR = create("voice.connection_error");
+	public static final SoundEvent VOICE_MATERIALIZE = create("voice.materialize");
+	public static final SoundEvent VOICE_GLITCH_HIT = create("voice.glitch_hit");
+	public static final SoundEvent VOICE_GLITCH_STATIC = create("voice.glitch_static");
+	public static final SoundEvent VOICE_MATERIALIZE_HUM = create("voice.materialize_hum");
 
 	private ModSounds() {}
 
@@ -19,8 +23,16 @@ public final class ModSounds {
 	}
 
 	public static void register() {
-		Registry.register(BuiltInRegistries.SOUND_EVENT, HostProtocolMod.id("voice.intro_title"), VOICE_INTRO_TITLE);
-		Registry.register(BuiltInRegistries.SOUND_EVENT, HostProtocolMod.id("voice.intro_credits"), VOICE_INTRO_CREDITS);
-		Registry.register(BuiltInRegistries.SOUND_EVENT, HostProtocolMod.id("voice.connection_error"), VOICE_CONNECTION_ERROR);
+		register(VOICE_INTRO_TITLE);
+		register(VOICE_INTRO_CREDITS);
+		register(VOICE_CONNECTION_ERROR);
+		register(VOICE_MATERIALIZE);
+		register(VOICE_GLITCH_HIT);
+		register(VOICE_GLITCH_STATIC);
+		register(VOICE_MATERIALIZE_HUM);
+	}
+
+	private static void register(SoundEvent event) {
+		Registry.register(BuiltInRegistries.SOUND_EVENT, event.getLocation(), event);
 	}
 }
