@@ -9,6 +9,7 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
+import ru.hostprotocol.client.IntroClientState;
 import ru.hostprotocol.client.fx.GlitchRenderer;
 import ru.hostprotocol.client.fx.MaterializeClientFx;
 import ru.hostprotocol.network.ModNetworking;
@@ -171,6 +172,7 @@ public class IntroScreen extends Screen {
 			MaterializeClientFx.onIntroFinished(minecraft);
 		}
 		ClientPlayNetworking.send(ModNetworking.INTRO_COMPLETE_C2S, ModNetworking.createIntroCompletePacket());
+		IntroClientState.setFreezeActive(false);
 		onClose();
 	}
 
@@ -288,7 +290,7 @@ public class IntroScreen extends Screen {
 
 	@Override
 	public boolean isPauseScreen() {
-		return false;
+		return true;
 	}
 
 	@Override
