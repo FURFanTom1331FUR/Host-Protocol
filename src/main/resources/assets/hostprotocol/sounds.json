@@ -130,5 +130,34 @@
 				"stream": true
 			}
 		]
+	},
+	"scan.hum": {
+		"subtitle": "subtitles.hostprotocol.scan.hum",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/materialize_hum",
+				"volume": 0.6
+			}
+		]
+	},
+	"scan.complete": {
+		"subtitle": "subtitles.hostprotocol.scan.complete",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/glitch_hit",
+				"volume": 0.8,
+				"pitch": 1.15
+			}
+		]
+	},
+	"scan.fail": {
+		"subtitle": "subtitles.hostprotocol.scan.fail",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/glitch_static",
+				"volume": 0.45,
+				"pitch": 0.85
+			}
+		]
 	}
 }

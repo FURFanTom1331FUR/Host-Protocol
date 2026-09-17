@@ -222,7 +222,57 @@ Diamond | Iron Ingot | Copper Ingot
 → Scanner
 ```
 
-Вкладка КПК **ЧЕРТЕЖ** рисует эту сетку **иконками предметов** (как ванильный верстак) + слот результата «Сканер». ПКМ по сканеру — заглушка калибровки. Полный геймплей сканера вне скоупа.
+Вкладка КПК **ЧЕРТЕЖ** рисует эту сетку **иконками предметов** (как ванильный верстак) + слот результата «Сканер».
+
+### Сканер: луч, прогресс, руда / мобы
+
+Удерживайте **ПКМ**, глядя на цель (raycast ~8 блоков):
+
+- Фиолетовый луч Host Protocol (линии + частицы `end_rod` / `witch`) от сканера к точке попадания.
+- Полоса прогресса на экране (проценты).
+- **Руда** (уголь / железо / медь / золото / редстоун / лазурит / алмаз / изумруд / кварц / ancient debris, включая deepslate/nether): ~2.5 с, **один раз на BlockPos**. Повтор — короткий fail buzz и «уже просканировано».
+- **Живые сущности**: ~1.5 с, можно сканировать много раз; каждый успех — чат-пинг и строка в сенсорном логе КПК.
+- Отпустите ПКМ, отведите взгляд или отойдите дальше ~3.5 блока — скан срывается.
+
+**Первый успешный скан железной руды** (`iron_ore` / `deepslate_iron_ore`) — один раз на игрока:
+
+- Сообщения в чат (RU/EN): можно создать **новый КПК** и перенестись в новый модуль; нужен **лабораторный стол**.
+- В КПК (вкладка **ЧЕРТЕЖ**) открываются чертежи **лабораторного стола** и **КПК МК-II**.
+- Флаг пишется в данные мира (`LabBlueprintLogs`); повтор железа не повторяет beat.
+
+Как проверить луч и unlock:
+
+```
+/give @s hostprotocol:scanner
+```
+
+Поставьте железную руду, удерживайте ПКМ на блоке ~2.5 с. Луч + полоса, затем чат unlock. Повтор на том же блоке — «уже просканировано». На мобе (корова / зомби) скан короче и повторяется. `/hostprotocol status` показывает `Lab blueprints` и число просканированных руд.
+
+### Лабораторный стол и КПК МК-II
+
+**Верстак 3×3** (3 золота сверху, 6 железа снизу):
+
+```
+Gold | Gold | Gold
+Iron | Iron | Iron
+Iron | Iron | Iron
+→ hostprotocol:lab_table
+```
+
+Блок ставится. ПКМ открывает GUI **как верстак, но сетка 5×5 + выход** (не ванильные 3×3). Рецепт МК-II ищется сервером как 3×3 в любой подобласти 5×5; лишние предметы в сетке ломают крафт.
+
+**На лабораторном столе (не на обычном верстаке):**
+
+```
+Iron | Glass | Iron
+Iron | Redstone Dust | Iron
+Iron | Glass | Iron
+→ hostprotocol:pda_mk2  («КПК Host Protocol МК-II»)
+```
+
+Новый КПК: отдельное имя/текстура, те же вкладки плюс **МОДУЛЬ** (заглушка переноса сознания + сенсорный лог). Полный transfer gameplay вне скоупа.
+
+Проверка крафта без скана железа (читерски): `/give @s hostprotocol:lab_table` и ингредиенты, либо сначала просканируйте железо, чтобы чертежи появились в КПК.
 
 ### Протокол взломан (coords + connection)
 
@@ -271,9 +321,9 @@ Diamond | Iron Ingot | Copper Ingot
 
 Не выходите 10 секунд: FX + гудок + kick + файл на рабочем столе.
 
-`/hostprotocol status` показывает infection, focus, coords, septic, protocol breached.
+`/hostprotocol status` показывает infection, focus, coords, septic, protocol breached, lab blueprints.
 
-Вне скоупа: полный геймплей сканера, ИИ моба Septic, лечение.
+Вне скоупа: ИИ моба Septic, лечение, полный «перенос сознания» (на МК-II только текст).
 
 ## Голос / SFX
 
@@ -302,9 +352,10 @@ src/main/resources/assets/hostprotocol/sounds/voice/
 
 ```
 src/main/java/ru/hostprotocol/     — сервер/общая логика, freeze, КПК, дни мира, очаг, Septic, Day3 kick, данные, звуки, сеть, /hostprotocol
-src/client/java/ru/hostprotocol/   — клиент: IntroScreen, PdaScreen (чертёж 3×3), HUD, FX, Day3 disconnect
+src/client/java/ru/hostprotocol/   — клиент: IntroScreen, PdaScreen (чертежи 3×3 иконками), LabTableScreen 5×5, HUD скана, луч
 src/main/resources/assets/hostprotocol/lang/ — ru_ru + en_us
-src/main/resources/data/hostprotocol/recipes/scanner.json — шейп сканера
+src/main/resources/data/hostprotocol/recipes/scanner.json, lab_table.json
+src/main/resources/data/hostprotocol/tags/blocks/scannable_ores.json
 src/main/resources/assets/hostprotocol/textures/block/infection_overlay.png
 src/main/resources/assets/hostprotocol/sounds/voice/ — женский VO дня 2/3
 ```

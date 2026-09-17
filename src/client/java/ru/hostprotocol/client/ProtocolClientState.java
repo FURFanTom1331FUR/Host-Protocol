@@ -20,6 +20,7 @@ public final class ProtocolClientState {
 	private static boolean protocolBreached;
 	private static boolean systemErrorLog;
 	private static boolean blueprints;
+	private static boolean labBlueprints;
 	private static int focusX;
 	private static int focusY;
 	private static int focusZ;
@@ -41,7 +42,8 @@ public final class ProtocolClientState {
 			String garbled,
 			boolean breached,
 			boolean systemError,
-			boolean scannerBlueprints
+			boolean scannerBlueprints,
+			boolean labBp
 	) {
 		subjectId = subject == null || subject.isEmpty() ? "—" : subject;
 		garbledSubjectId = garbled == null || garbled.isEmpty() ? "—" : garbled;
@@ -57,6 +59,7 @@ public final class ProtocolClientState {
 		protocolBreached = breached;
 		systemErrorLog = systemError;
 		blueprints = scannerBlueprints;
+		labBlueprints = labBp;
 		if (focus != null) {
 			focusX = focus.getX();
 			focusY = focus.getY();
@@ -79,6 +82,7 @@ public final class ProtocolClientState {
 		protocolBreached = false;
 		systemErrorLog = false;
 		blueprints = false;
+		labBlueprints = false;
 		focusX = 0;
 		focusY = 0;
 		focusZ = 0;
@@ -138,6 +142,10 @@ public final class ProtocolClientState {
 
 	public static boolean hasBlueprints() {
 		return blueprints;
+	}
+
+	public static boolean hasLabBlueprints() {
+		return labBlueprints;
 	}
 
 	public static int focusX() {

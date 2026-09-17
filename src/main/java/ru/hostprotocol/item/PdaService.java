@@ -109,11 +109,19 @@ public final class PdaService {
 		forEachPda(player, PdaItem::markBlueprints);
 	}
 
-	public static void stampLogs(ServerPlayer player, IntroWorldData data) {
-		forEachPda(player, stack -> stampStack(stack, data, player.getUUID()));
+	public static void stampLabBlueprints(ServerPlayer player) {
+		forEachPda(player, PdaItem::markLabBlueprints);
 	}
 
-	private static void stampStack(ItemStack stack, IntroWorldData data, UUID playerId) {
+	public static void appendSensorLog(ServerPlayer player, String line) {
+		forEachPda(player, stack -> PdaItem.appendSensorLog(stack, line));
+	}
+
+	public static void stampLogs(ServerPlayer player, IntroWorldData data) {
+		forEachPda(player, stack -> stampOnto(stack, data, player.getUUID()));
+	}
+
+	public static void stampOnto(ItemStack stack, IntroWorldData data, UUID playerId) {
 		if (data.hasDay2Log(playerId)) {
 			PdaItem.markDay2Log(stack);
 		}
@@ -129,12 +137,15 @@ public final class PdaService {
 		if (data.hasBlueprints(playerId)) {
 			PdaItem.markBlueprints(stack);
 		}
+		if (data.hasLabBlueprints(playerId)) {
+			PdaItem.markLabBlueprints(stack);
+		}
 	}
 
 	private static void forEachPda(ServerPlayer player, Consumer<ItemStack> consumer) {
 		for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
 			ItemStack stack = player.getInventory().getItem(i);
-			if (stack.is(ModItems.PDA)) {
+			if (stack.is(ModItems.PDA) || stack.is(ModItems.PDA_MK2)) {
 				consumer.accept(stack);
 			}
 		}
@@ -164,7 +175,7 @@ public final class PdaService {
 		}
 
 		ItemStack pda = PdaItem.createForSubject(data.getSubjectId());
-		stampStack(pda, data, player.getUUID());
+		stampOnto(pda, data, player.getUUID());
 		boolean added = player.addItem(pda);
 		if (!added) {
 			player.drop(pda, false);

@@ -16,6 +16,10 @@ public final class ModBlocks {
 	public static final Block INFECTED_GRASS_BLOCK = infected(SoundType.GRASS, MapColor.COLOR_PURPLE);
 	public static final Block INFECTED_OAK_LOG = new InfectedPillarBlock(unbreakable(SoundType.WOOD, MapColor.COLOR_PURPLE));
 	public static final Block INFECTED_OAK_PLANKS = infected(SoundType.WOOD, MapColor.COLOR_PURPLE);
+	public static final Block LAB_TABLE = new LabTableBlock(BlockBehaviour.Properties.of()
+			.mapColor(MapColor.GOLD)
+			.strength(2.5F)
+			.sound(SoundType.WOOD));
 
 	private ModBlocks() {}
 
@@ -26,6 +30,7 @@ public final class ModBlocks {
 		register("infected_grass_block", INFECTED_GRASS_BLOCK);
 		register("infected_oak_log", INFECTED_OAK_LOG);
 		register("infected_oak_planks", INFECTED_OAK_PLANKS);
+		register("lab_table", LAB_TABLE);
 	}
 
 	public static boolean isInfected(Block block) {

@@ -22,6 +22,9 @@ public final class ModSounds {
 	public static final SoundEvent VOICE_SEPTIC_DROP = create("voice.septic_drop");
 	public static final SoundEvent VOICE_SIGNAL_LOST = create("voice.signal_lost");
 	public static final SoundEvent VOICE_SIGNAL_LOST_TONE = create("voice.signal_lost_tone");
+	public static final SoundEvent SCAN_HUM = create("scan.hum");
+	public static final SoundEvent SCAN_COMPLETE = create("scan.complete");
+	public static final SoundEvent SCAN_FAIL = create("scan.fail");
 
 	private ModSounds() {}
 
@@ -46,6 +49,9 @@ public final class ModSounds {
 		register(VOICE_SEPTIC_DROP);
 		register(VOICE_SIGNAL_LOST);
 		register(VOICE_SIGNAL_LOST_TONE);
+		register(SCAN_HUM);
+		register(SCAN_COMPLETE);
+		register(SCAN_FAIL);
 	}
 
 	private static void register(SoundEvent event) {

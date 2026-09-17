@@ -57,6 +57,7 @@ public final class ModNetworking {
 		buf.writeBoolean(data.isProtocolBreached());
 		buf.writeBoolean(data.hasSystemErrorLog(player.getUUID()));
 		buf.writeBoolean(data.hasBlueprints(player.getUUID()));
+		buf.writeBoolean(data.hasLabBlueprints(player.getUUID()));
 		ServerPlayNetworking.send(player, PROTOCOL_STATE_S2C, buf);
 	}
 

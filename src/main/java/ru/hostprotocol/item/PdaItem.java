@@ -2,6 +2,9 @@ package ru.hostprotocol.item;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.InteractionHand;
@@ -12,6 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -27,6 +31,9 @@ public class PdaItem extends Item {
 	public static final String TAG_DAY3 = "Day3Log";
 	public static final String TAG_SYSTEM_ERROR = "SystemErrorLog";
 	public static final String TAG_BLUEPRINTS = "BlueprintsUnlocked";
+	public static final String TAG_LAB_BLUEPRINTS = "LabBlueprintsUnlocked";
+	public static final String TAG_SENSOR_LOG = "SensorLog";
+	public static final int SENSOR_LOG_LIMIT = 8;
 
 	public PdaItem(Properties properties) {
 		super(properties);
@@ -101,6 +108,45 @@ public class PdaItem extends Item {
 
 	public static void markBlueprints(ItemStack stack) {
 		stack.getOrCreateTag().putBoolean(TAG_BLUEPRINTS, true);
+	}
+
+	public static boolean hasLabBlueprints(ItemStack stack) {
+		CompoundTag tag = stack.getTag();
+		return tag != null && tag.getBoolean(TAG_LAB_BLUEPRINTS);
+	}
+
+	public static void markLabBlueprints(ItemStack stack) {
+		stack.getOrCreateTag().putBoolean(TAG_LAB_BLUEPRINTS, true);
+	}
+
+	public static boolean isPdaDevice(ItemStack stack) {
+		return stack.is(ModItems.PDA) || stack.is(ModItems.PDA_MK2);
+	}
+
+	public static void appendSensorLog(ItemStack stack, String line) {
+		if (line == null || line.isEmpty()) {
+			return;
+		}
+		CompoundTag tag = stack.getOrCreateTag();
+		ListTag list = tag.getList(TAG_SENSOR_LOG, Tag.TAG_STRING);
+		list.add(StringTag.valueOf(line));
+		while (list.size() > SENSOR_LOG_LIMIT) {
+			list.remove(0);
+		}
+		tag.put(TAG_SENSOR_LOG, list);
+	}
+
+	public static List<String> getSensorLogs(ItemStack stack) {
+		CompoundTag tag = stack.getTag();
+		List<String> out = new ArrayList<>();
+		if (tag == null || !tag.contains(TAG_SENSOR_LOG)) {
+			return out;
+		}
+		ListTag list = tag.getList(TAG_SENSOR_LOG, Tag.TAG_STRING);
+		for (int i = 0; i < list.size(); i++) {
+			out.add(list.getString(i));
+		}
+		return out;
 	}
 
 	public static String getSubjectId(ItemStack stack) {

@@ -1,0 +1,8 @@
+{
+	"parent": "minecraft:block/cube_bottom_top",
+	"textures": {
+		"top": "hostprotocol:block/lab_table_top",
+		"bottom": "hostprotocol:block/lab_table_bottom",
+		"side": "hostprotocol:block/lab_table_side"
+	}
+}
