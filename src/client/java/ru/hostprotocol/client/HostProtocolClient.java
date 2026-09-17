@@ -8,7 +8,9 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.ColorProviderRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.renderer.BiomeColors;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
@@ -23,12 +25,17 @@ import ru.hostprotocol.client.fx.DayAnnounceClientFx;
 import ru.hostprotocol.client.fx.InfectionActiveClientFx;
 import ru.hostprotocol.client.fx.MaterializeClientFx;
 import ru.hostprotocol.client.fx.PdaAppearClientFx;
+import ru.hostprotocol.client.fx.ScanBeamRenderer;
 import ru.hostprotocol.client.fx.SepticLinkClientFx;
 import ru.hostprotocol.client.fx.SystemErrorClientFx;
 import ru.hostprotocol.client.hud.DayHud;
+import ru.hostprotocol.client.hud.ScanHud;
 import ru.hostprotocol.client.screen.IntroScreen;
+import ru.hostprotocol.client.screen.LabTableScreen;
 import ru.hostprotocol.client.screen.PdaScreen;
+import ru.hostprotocol.client.sound.ScanHumClient;
 import ru.hostprotocol.item.ClientItemScreens;
+import ru.hostprotocol.menu.ModMenus;
 import ru.hostprotocol.network.ModNetworking;
 
 public class HostProtocolClient implements ClientModInitializer {
@@ -96,11 +103,12 @@ public class HostProtocolClient implements ClientModInitializer {
 			boolean breached = buf.readBoolean();
 			boolean systemError = buf.readBoolean();
 			boolean blueprints = buf.readBoolean();
+			boolean labBlueprints = buf.readBoolean();
 			client.execute(() -> {
 				ProtocolClientState.apply(
 						subjectId, introCompleted, day2, day2Coords, day3, pdaGiven, day,
 						infection, septicLink, hasCoords, focus, garbled,
-						breached, systemError, blueprints);
+						breached, systemError, blueprints, labBlueprints);
 				if (breached) {
 					BreachWatchdog.arm(client);
 				}
@@ -159,6 +167,8 @@ public class HostProtocolClient implements ClientModInitializer {
 			SepticLinkClientFx.clientTick(client);
 			SystemErrorClientFx.clientTick(client);
 			Day3DisconnectClientFx.clientTick(client);
+			ScanBeamRenderer.clientTick(client);
+			ScanHumClient.clientTick(client);
 			if (!pendingIntro || pendingSubjectId == null) {
 				return;
 			}
@@ -189,7 +199,10 @@ public class HostProtocolClient implements ClientModInitializer {
 			CoordsUnlockClientFx.render(graphics, client);
 			SystemErrorClientFx.render(graphics, client);
 			Day3DisconnectClientFx.render(graphics, client);
+			ScanHud.render(graphics, client, tickDelta);
 		});
+
+		WorldRenderEvents.AFTER_TRANSLUCENT.register(ScanBeamRenderer::render);
 
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
 			MaterializeClientFx.cancel(client);
@@ -200,6 +213,7 @@ public class HostProtocolClient implements ClientModInitializer {
 			SepticLinkClientFx.cancel(client);
 			SystemErrorClientFx.cancel(client);
 			Day3DisconnectClientFx.cancel(client);
+			ScanHumClient.stop();
 			ProtocolClientState.reset();
 			IntroClientState.setFreezeActive(false);
 			pendingIntro = false;
@@ -207,6 +221,7 @@ public class HostProtocolClient implements ClientModInitializer {
 		});
 
 		ClientItemScreens.OPEN_PDA = stack -> Minecraft.getInstance().setScreen(new PdaScreen(stack));
+		MenuScreens.register(ModMenus.LAB_TABLE, LabTableScreen::new);
 
 		HostProtocolMod.LOGGER.info("Host Protocol client ready");
 	}

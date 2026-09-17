@@ -27,7 +27,9 @@ import ru.hostprotocol.infection.MetaBreachController;
 import ru.hostprotocol.infection.SepticLinkController;
 import ru.hostprotocol.item.ModItems;
 import ru.hostprotocol.item.PdaService;
+import ru.hostprotocol.menu.ModMenus;
 import ru.hostprotocol.network.ModNetworking;
+import ru.hostprotocol.scan.ScanService;
 import ru.hostprotocol.sound.ModSounds;
 import ru.hostprotocol.world.ProtocolDayTracker;
 import ru.hostprotocol.world.ProtocolTime;
@@ -51,6 +53,7 @@ public class HostProtocolMod implements ModInitializer {
 		ModSounds.register();
 		ModBlocks.register();
 		ModItems.register();
+		ModMenus.register();
 		ModNetworking.registerServer();
 		registerCommands();
 		registerInfectionGuards();
@@ -86,6 +89,7 @@ public class HostProtocolMod implements ModInitializer {
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
 			IntroFreeze.end(handler.player);
 			Day3DisconnectController.onDisconnect(handler.player, IntroWorldData.get(server.overworld()));
+			ScanService.clear(handler.player);
 		});
 
 		ServerPlayNetworking.registerGlobalReceiver(ModNetworking.INTRO_COMPLETE_C2S, (server, player, handler, buf, responseSender) -> {
@@ -222,6 +226,11 @@ public class HostProtocolMod implements ModInitializer {
 											data.hasBlueprints(player.getUUID()),
 											coordsIn,
 											septicIn
+									), false);
+									ctx.getSource().sendSuccess(() -> Component.translatable(
+											"hostprotocol.command.status.lab",
+											data.hasLabBlueprints(player.getUUID()),
+											data.scannedOreCount(player.getUUID())
 									), false);
 									return day;
 								}))

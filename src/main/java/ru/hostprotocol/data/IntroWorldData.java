@@ -36,6 +36,8 @@ public class IntroWorldData extends SavedData {
 	private final Set<UUID> day3Logs = new HashSet<>();
 	private final Set<UUID> systemErrorLogs = new HashSet<>();
 	private final Set<UUID> blueprintLogs = new HashSet<>();
+	private final Set<UUID> labBlueprintLogs = new HashSet<>();
+	private final Map<UUID, Set<Long>> scannedOres = new HashMap<>();
 	private final Set<UUID> breachAcknowledged = new HashSet<>();
 	private final Set<UUID> day3DisconnectFired = new HashSet<>();
 	private final Set<UUID> day3LeftBeforeKick = new HashSet<>();
@@ -86,6 +88,23 @@ public class IntroWorldData extends SavedData {
 		readUuidSet(tag, "Day3Logs", data.day3Logs);
 		readUuidSet(tag, "SystemErrorLogs", data.systemErrorLogs);
 		readUuidSet(tag, "BlueprintLogs", data.blueprintLogs);
+		readUuidSet(tag, "LabBlueprintLogs", data.labBlueprintLogs);
+		if (tag.contains("ScannedOres", Tag.TAG_LIST)) {
+			ListTag list = tag.getList("ScannedOres", Tag.TAG_COMPOUND);
+			for (int i = 0; i < list.size(); i++) {
+				CompoundTag entry = list.getCompound(i);
+				try {
+					UUID uuid = UUID.fromString(entry.getString("Id"));
+					Set<Long> positions = new HashSet<>();
+					for (long packed : entry.getLongArray("Positions")) {
+						positions.add(packed);
+					}
+					data.scannedOres.put(uuid, positions);
+				} catch (IllegalArgumentException ignored) {
+					// skip corrupt UUID
+				}
+			}
+		}
 		readUuidSet(tag, "BreachAcknowledged", data.breachAcknowledged);
 		readUuidSet(tag, "Day3DisconnectFired", data.day3DisconnectFired);
 		readUuidSet(tag, "Day3LeftBeforeKick", data.day3LeftBeforeKick);
@@ -129,6 +148,20 @@ public class IntroWorldData extends SavedData {
 		writeUuidSet(tag, "Day3Logs", day3Logs);
 		writeUuidSet(tag, "SystemErrorLogs", systemErrorLogs);
 		writeUuidSet(tag, "BlueprintLogs", blueprintLogs);
+		writeUuidSet(tag, "LabBlueprintLogs", labBlueprintLogs);
+		ListTag scanned = new ListTag();
+		for (Map.Entry<UUID, Set<Long>> entry : scannedOres.entrySet()) {
+			CompoundTag row = new CompoundTag();
+			row.putString("Id", entry.getKey().toString());
+			long[] packed = new long[entry.getValue().size()];
+			int i = 0;
+			for (Long value : entry.getValue()) {
+				packed[i++] = value;
+			}
+			row.putLongArray("Positions", packed);
+			scanned.add(row);
+		}
+		tag.put("ScannedOres", scanned);
 		writeUuidSet(tag, "BreachAcknowledged", breachAcknowledged);
 		writeUuidSet(tag, "Day3DisconnectFired", day3DisconnectFired);
 		writeUuidSet(tag, "Day3LeftBeforeKick", day3LeftBeforeKick);
@@ -299,6 +332,39 @@ public class IntroWorldData extends SavedData {
 			return true;
 		}
 		return false;
+	}
+
+	public boolean hasLabBlueprints(UUID playerId) {
+		return labBlueprintLogs.contains(playerId);
+	}
+
+	/** First iron-ore scan unlock. Returns true only the first time. */
+	public boolean markLabBlueprints(UUID playerId) {
+		if (labBlueprintLogs.add(playerId)) {
+			setDirty();
+			return true;
+		}
+		return false;
+	}
+
+	public boolean isOreScanned(UUID playerId, BlockPos pos) {
+		Set<Long> set = scannedOres.get(playerId);
+		return set != null && set.contains(pos.asLong());
+	}
+
+	/** @return true if this BlockPos was newly marked for the player */
+	public boolean markOreScanned(UUID playerId, BlockPos pos) {
+		Set<Long> set = scannedOres.computeIfAbsent(playerId, id -> new HashSet<>());
+		if (set.add(pos.asLong())) {
+			setDirty();
+			return true;
+		}
+		return false;
+	}
+
+	public int scannedOreCount(UUID playerId) {
+		Set<Long> set = scannedOres.get(playerId);
+		return set == null ? 0 : set.size();
 	}
 
 	public boolean hasBreachAcknowledged(UUID playerId) {
