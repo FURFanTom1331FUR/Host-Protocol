@@ -45,6 +45,16 @@ class ProgressionLogicTest {
 	}
 
 	@Test
+	void lookAtChatFiresOncePerGazeWithCooldown() {
+		assertEquals(600, SepticPresenceLogic.LOOK_CHAT_COOLDOWN_TICKS);
+		assertTrue(SepticPresenceLogic.shouldAnnounceLook(true, false, 0));
+		assertFalse(SepticPresenceLogic.shouldAnnounceLook(true, true, 0));
+		assertFalse(SepticPresenceLogic.shouldAnnounceLook(true, false, 1));
+		assertFalse(SepticPresenceLogic.shouldAnnounceLook(false, true, 0));
+		assertFalse(SepticPresenceLogic.shouldAnnounceLook(false, false, 0));
+	}
+
+	@Test
 	void infectionRadiusAndStages() {
 		assertEquals(10, InfectedMobLogic.affectRadius(4));
 		assertTrue(InfectedMobLogic.inRadius(3, 0, 4, 5));
@@ -55,5 +65,16 @@ class ProgressionLogicTest {
 		assertTrue(InfectedMobLogic.shouldDropFlesh(true, false));
 		assertFalse(InfectedMobLogic.shouldDropFlesh(true, true));
 		assertFalse(InfectedMobLogic.shouldDropFlesh(false, false));
+	}
+
+	@Test
+	void infectionTintStainsGrassTowardPurple() {
+		int stained = ru.hostprotocol.infection.InfectionVisuals.stainGrass(0x7CBD6B);
+		int r = (stained >> 16) & 0xFF;
+		int g = (stained >> 8) & 0xFF;
+		int b = stained & 0xFF;
+		assertTrue(b > r);
+		assertTrue(r > g);
+		assertTrue(g < 80);
 	}
 }

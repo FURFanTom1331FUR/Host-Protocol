@@ -193,6 +193,8 @@
 	"hostprotocol.lab.slot.mk2": "MK-II",
 	"hostprotocol.septic.what": "Что ты такое.",
 	"hostprotocol.septic.what.sub": "Ты вроде не из этого мира.",
+	"hostprotocol.septic.chat.look": "[HP://SEPTIC] Чт0 ты так0е.",
+	"hostprotocol.septic.chat.look.sub": "Ты вроде не из эт0го мiра.",
 	"hostprotocol.infection.stage.0": "нет / чисто",
 	"hostprotocol.infection.stage.1": "стадия 1 — помечен",
 	"hostprotocol.infection.stage.2": "стадия 2 — закрепилось",

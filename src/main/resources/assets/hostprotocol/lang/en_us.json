@@ -193,6 +193,8 @@
 	"hostprotocol.lab.slot.mk2": "MK-II",
 	"hostprotocol.septic.what": "What are you.",
 	"hostprotocol.septic.what.sub": "You do not seem to be from this world.",
+	"hostprotocol.septic.chat.look": "[HP://SEPTIC] Wh4t 4re y0u.",
+	"hostprotocol.septic.chat.look.sub": "Y0u d0 n0t se3m t0 be fr0m th1s w0rld.",
 	"hostprotocol.infection.stage.0": "none / clean",
 	"hostprotocol.infection.stage.1": "stage 1 — tagged",
 	"hostprotocol.infection.stage.2": "stage 2 — entrenched",
