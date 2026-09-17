@@ -9,8 +9,10 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 import ru.hostprotocol.HostProtocolMod;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -37,6 +39,10 @@ public class IntroWorldData extends SavedData {
 	private final Set<UUID> systemErrorLogs = new HashSet<>();
 	private final Set<UUID> blueprintLogs = new HashSet<>();
 	private final Set<UUID> labBlueprintLogs = new HashSet<>();
+	private final Set<UUID> transferLogs = new HashSet<>();
+	private final Set<UUID> baseBlueprintLogs = new HashSet<>();
+	private final Set<UUID> mk2Booted = new HashSet<>();
+	private final Map<UUID, List<String>> recentScans = new HashMap<>();
 	private final Map<UUID, Set<Long>> scannedOres = new HashMap<>();
 	private final Set<UUID> breachAcknowledged = new HashSet<>();
 	private final Set<UUID> day3DisconnectFired = new HashSet<>();
@@ -57,6 +63,10 @@ public class IntroWorldData extends SavedData {
 	private boolean septicLinkAttempted;
 	private boolean protocolBreached;
 	private boolean forcedChunksArmed;
+	private boolean septicSpawned;
+	private UUID septicEntityId;
+
+	private static final int MAX_SCANS = 8;
 
 	public IntroWorldData() {
 		this.subjectId = generateSubjectId();
@@ -89,6 +99,9 @@ public class IntroWorldData extends SavedData {
 		readUuidSet(tag, "SystemErrorLogs", data.systemErrorLogs);
 		readUuidSet(tag, "BlueprintLogs", data.blueprintLogs);
 		readUuidSet(tag, "LabBlueprintLogs", data.labBlueprintLogs);
+		readUuidSet(tag, "TransferLogs", data.transferLogs);
+		readUuidSet(tag, "BaseBlueprintLogs", data.baseBlueprintLogs);
+		readUuidSet(tag, "Mk2Booted", data.mk2Booted);
 		if (tag.contains("ScannedOres", Tag.TAG_LIST)) {
 			ListTag list = tag.getList("ScannedOres", Tag.TAG_COMPOUND);
 			for (int i = 0; i < list.size(); i++) {
@@ -133,6 +146,27 @@ public class IntroWorldData extends SavedData {
 		data.septicLinkAttempted = tag.getBoolean("SepticLinkAttempted");
 		data.protocolBreached = tag.getBoolean("ProtocolBreached");
 		data.forcedChunksArmed = tag.getBoolean("ForcedChunksArmed");
+		data.septicSpawned = tag.getBoolean("SepticSpawned");
+		if (tag.hasUUID("SepticEntityId")) {
+			data.septicEntityId = tag.getUUID("SepticEntityId");
+		}
+		if (tag.contains("RecentScans", Tag.TAG_LIST)) {
+			ListTag list = tag.getList("RecentScans", Tag.TAG_COMPOUND);
+			for (int i = 0; i < list.size(); i++) {
+				CompoundTag row = list.getCompound(i);
+				try {
+					UUID uuid = UUID.fromString(row.getString("Id"));
+					List<String> entries = new ArrayList<>();
+					ListTag scans = row.getList("Entries", Tag.TAG_STRING);
+					for (int j = 0; j < scans.size(); j++) {
+						entries.add(scans.getString(j));
+					}
+					data.recentScans.put(uuid, entries);
+				} catch (IllegalArgumentException ignored) {
+					// skip
+				}
+			}
+		}
 		return data;
 	}
 
@@ -149,6 +183,9 @@ public class IntroWorldData extends SavedData {
 		writeUuidSet(tag, "SystemErrorLogs", systemErrorLogs);
 		writeUuidSet(tag, "BlueprintLogs", blueprintLogs);
 		writeUuidSet(tag, "LabBlueprintLogs", labBlueprintLogs);
+		writeUuidSet(tag, "TransferLogs", transferLogs);
+		writeUuidSet(tag, "BaseBlueprintLogs", baseBlueprintLogs);
+		writeUuidSet(tag, "Mk2Booted", mk2Booted);
 		ListTag scanned = new ListTag();
 		for (Map.Entry<UUID, Set<Long>> entry : scannedOres.entrySet()) {
 			CompoundTag row = new CompoundTag();
@@ -186,6 +223,22 @@ public class IntroWorldData extends SavedData {
 		tag.putBoolean("SepticLinkAttempted", septicLinkAttempted);
 		tag.putBoolean("ProtocolBreached", protocolBreached);
 		tag.putBoolean("ForcedChunksArmed", forcedChunksArmed);
+		tag.putBoolean("SepticSpawned", septicSpawned);
+		if (septicEntityId != null) {
+			tag.putUUID("SepticEntityId", septicEntityId);
+		}
+		ListTag scans = new ListTag();
+		for (Map.Entry<UUID, List<String>> entry : recentScans.entrySet()) {
+			CompoundTag row = new CompoundTag();
+			row.putString("Id", entry.getKey().toString());
+			ListTag entries = new ListTag();
+			for (String line : entry.getValue()) {
+				entries.add(StringTag.valueOf(line));
+			}
+			row.put("Entries", entries);
+			scans.add(row);
+		}
+		tag.put("RecentScans", scans);
 		return tag;
 	}
 
@@ -345,6 +398,89 @@ public class IntroWorldData extends SavedData {
 			return true;
 		}
 		return false;
+	}
+
+	public boolean hasTransferred(UUID playerId) {
+		return transferLogs.contains(playerId);
+	}
+
+	public boolean markTransferred(UUID playerId) {
+		boolean changed = transferLogs.add(playerId);
+		changed |= baseBlueprintLogs.add(playerId);
+		if (changed) {
+			setDirty();
+			return true;
+		}
+		return false;
+	}
+
+	public boolean hasBaseBlueprints(UUID playerId) {
+		return baseBlueprintLogs.contains(playerId);
+	}
+
+	public boolean markBaseBlueprints(UUID playerId) {
+		if (baseBlueprintLogs.add(playerId)) {
+			setDirty();
+			return true;
+		}
+		return false;
+	}
+
+	public boolean hasMk2Booted(UUID playerId) {
+		return mk2Booted.contains(playerId);
+	}
+
+	public boolean markMk2Booted(UUID playerId) {
+		if (mk2Booted.add(playerId)) {
+			setDirty();
+			return true;
+		}
+		return false;
+	}
+
+	public List<String> getRecentScans(UUID playerId) {
+		List<String> list = recentScans.get(playerId);
+		return list == null ? List.of() : List.copyOf(list);
+	}
+
+	public void pushScan(UUID playerId, String id) {
+		if (id == null || id.isEmpty()) {
+			return;
+		}
+		List<String> list = recentScans.computeIfAbsent(playerId, ignored -> new ArrayList<>());
+		list.remove(id);
+		list.add(0, id);
+		while (list.size() > MAX_SCANS) {
+			list.remove(list.size() - 1);
+		}
+		setDirty();
+	}
+
+	public boolean isSepticSpawned() {
+		return septicSpawned;
+	}
+
+	public void markSepticSpawned() {
+		if (!septicSpawned) {
+			septicSpawned = true;
+			setDirty();
+		}
+	}
+
+	public UUID getSepticEntityId() {
+		return septicEntityId;
+	}
+
+	public void setSepticEntityId(UUID id) {
+		this.septicEntityId = id;
+		setDirty();
+	}
+
+	public void clearSepticEntityId() {
+		if (septicEntityId != null) {
+			septicEntityId = null;
+			setDirty();
+		}
 	}
 
 	public boolean isOreScanned(UUID playerId, BlockPos pos) {

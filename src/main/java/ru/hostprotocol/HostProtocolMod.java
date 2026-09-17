@@ -19,16 +19,21 @@ import org.slf4j.LoggerFactory;
 import ru.hostprotocol.block.ModBlockTags;
 import ru.hostprotocol.block.ModBlocks;
 import ru.hostprotocol.data.IntroWorldData;
+import ru.hostprotocol.effect.ModEffects;
+import ru.hostprotocol.entity.ModEntityTypes;
 import ru.hostprotocol.freeze.IntroFreeze;
 import ru.hostprotocol.infection.Day2DebugSequence;
 import ru.hostprotocol.infection.Day3DisconnectController;
+import ru.hostprotocol.infection.InfectedMobs;
 import ru.hostprotocol.infection.InfectionTicker;
 import ru.hostprotocol.infection.MetaBreachController;
 import ru.hostprotocol.infection.SepticLinkController;
+import ru.hostprotocol.infection.SepticPresenceController;
 import ru.hostprotocol.item.ModItems;
 import ru.hostprotocol.item.PdaService;
 import ru.hostprotocol.menu.ModMenus;
 import ru.hostprotocol.network.ModNetworking;
+import ru.hostprotocol.progress.ProgressionService;
 import ru.hostprotocol.scan.ScanService;
 import ru.hostprotocol.sound.ModSounds;
 import ru.hostprotocol.world.ProtocolDayTracker;
@@ -51,13 +56,16 @@ public class HostProtocolMod implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		ModSounds.register();
+		ModEffects.register();
 		ModBlocks.register();
 		ModItems.register();
 		ModMenus.register();
+		ModEntityTypes.register();
 		ModNetworking.registerServer();
 		registerCommands();
 		registerInfectionGuards();
 		registerSleepIntercept();
+		registerDeathDrops();
 
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			IntroFreeze.tick(server);
@@ -65,7 +73,9 @@ public class HostProtocolMod implements ModInitializer {
 			ProtocolDayTracker.tick(server);
 			Day2DebugSequence.tick(server);
 			InfectionTicker.tick(server);
+			InfectedMobs.tick(server);
 			SepticLinkController.tick(server);
+			SepticPresenceController.tick(server);
 			Day3DisconnectController.tick(server);
 			MetaBreachController.tryArm(server, IntroWorldData.get(server.overworld()));
 		});
@@ -84,6 +94,7 @@ public class HostProtocolMod implements ModInitializer {
 			ModNetworking.sendIntroState(player, data.getSubjectId(), data.isIntroCompleted());
 			ModNetworking.sendProtocolState(player, data);
 			MetaBreachController.onPlayerJoin(player, data);
+			ProgressionService.grantKnownRecipes(player, data);
 		});
 
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
@@ -103,7 +114,7 @@ public class HostProtocolMod implements ModInitializer {
 			});
 		});
 
-		LOGGER.info("Host Protocol initialized (Day-2 dawn infection, auto coords/septic, Day-3 kick)");
+		LOGGER.info("Host Protocol initialized (scanner beam, lab transfer, MK-II assistant, Day-5 Septic)");
 	}
 
 	private static void registerInfectionGuards() {
@@ -146,6 +157,10 @@ public class HostProtocolMod implements ModInitializer {
 				!SepticLinkController.shouldBlockTimeReset(player));
 	}
 
+	private static void registerDeathDrops() {
+		net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.AFTER_DEATH.register((entity, damageSource) -> InfectedMobs.onDeath(entity));
+	}
+
 	private static void registerCommands() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(
 				Commands.literal("hostprotocol")
@@ -185,6 +200,38 @@ public class HostProtocolMod implements ModInitializer {
 									ServerPlayer player = ctx.getSource().getPlayerOrException();
 									SepticLinkController.forcePlay(player);
 									ctx.getSource().sendSuccess(() -> Component.translatable("hostprotocol.command.forceseptic"), true);
+									return 1;
+								}))
+						.then(Commands.literal("forceironscan")
+								.executes(ctx -> {
+									ServerPlayer player = ctx.getSource().getPlayerOrException();
+									net.minecraft.world.level.block.state.BlockState iron = net.minecraft.world.level.block.Blocks.IRON_ORE.defaultBlockState();
+									ProgressionService.scanBlock(player, iron, player.blockPosition());
+									ctx.getSource().sendSuccess(() -> Component.translatable("hostprotocol.command.forceironscan"), true);
+									return 1;
+								}))
+						.then(Commands.literal("forcetransfer")
+								.executes(ctx -> {
+									ServerPlayer player = ctx.getSource().getPlayerOrException();
+									IntroWorldData data = IntroWorldData.get(player.serverLevel().getServer().overworld());
+									data.markLabBlueprints(player.getUUID());
+									net.minecraft.world.item.ItemStack mk2 = ru.hostprotocol.item.PdaMk2Item.createActivatedFrom(
+											ru.hostprotocol.item.PdaItem.createForSubject(data.getSubjectId()));
+									ProgressionService.onTransferComplete(player, mk2);
+									boolean added = player.addItem(mk2);
+									if (!added) {
+										player.drop(mk2, false);
+									}
+									ctx.getSource().sendSuccess(() -> Component.translatable("hostprotocol.command.forcetransfer"), true);
+									return 1;
+								}))
+						.then(Commands.literal("spawnseptic")
+								.executes(ctx -> {
+									ServerPlayer player = ctx.getSource().getPlayerOrException();
+									var overworld = player.serverLevel().getServer().overworld();
+									IntroWorldData data = IntroWorldData.get(overworld);
+									SepticPresenceController.spawnNow(overworld, data, player.blockPosition());
+									ctx.getSource().sendSuccess(() -> Component.translatable("hostprotocol.command.spawnseptic"), true);
 									return 1;
 								}))
 						.then(Commands.literal("status")
@@ -231,6 +278,15 @@ public class HostProtocolMod implements ModInitializer {
 											"hostprotocol.command.status.lab",
 											data.hasLabBlueprints(player.getUUID()),
 											data.scannedOreCount(player.getUUID())
+									), false);
+									ctx.getSource().sendSuccess(() -> Component.translatable(
+											"hostprotocol.command.status.progress",
+											data.hasLabBlueprints(player.getUUID()),
+											data.hasTransferred(player.getUUID()),
+											data.hasBaseBlueprints(player.getUUID()),
+											data.hasMk2Booted(player.getUUID()),
+											data.isSepticSpawned(),
+											data.getRecentScans(player.getUUID()).size()
 									), false);
 									return day;
 								}))

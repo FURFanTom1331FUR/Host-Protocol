@@ -148,13 +148,9 @@ public final class ScanService {
 			player.displayClientMessage(Component.translatable("hostprotocol.scan.ore.success", oreName)
 					.withStyle(ChatFormatting.LIGHT_PURPLE), true);
 			PdaService.appendSensorLog(player, Component.translatable("hostprotocol.scan.sensor.ore", oreName).getString());
+			data.pushScan(player.getUUID(), oreName.getString());
 			if (isIronOre(player, pos, hit.block) && data.markLabBlueprints(player.getUUID())) {
-				PdaService.stampLabBlueprints(player);
-				ProtocolBroadcast.chat(player, ProtocolBroadcast.boldPurple("hostprotocol.scan.iron.unlock.chat"));
-				ProtocolBroadcast.chat(player, ProtocolBroadcast.boldGold("hostprotocol.scan.iron.unlock.chat2"));
-				player.displayClientMessage(Component.translatable("hostprotocol.scan.iron.unlock.bar")
-						.withStyle(ChatFormatting.GOLD), true);
-				ModNetworking.sendProtocolState(player, data);
+				ru.hostprotocol.progress.ProgressionService.onLabBlueprintsUnlocked(player);
 			}
 		} else if (hit.isMob() && hit.entity != null) {
 			Component name = hit.entity.getDisplayName();
@@ -163,6 +159,7 @@ public final class ScanService {
 			ProtocolBroadcast.chat(player, Component.translatable("hostprotocol.scan.mob.chat", name)
 					.withStyle(ChatFormatting.DARK_PURPLE));
 			PdaService.appendSensorLog(player, Component.translatable("hostprotocol.scan.sensor.mob", name).getString());
+			data.pushScan(player.getUUID(), name.getString());
 		}
 		player.stopUsingItem();
 	}

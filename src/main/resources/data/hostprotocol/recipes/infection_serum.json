@@ -1,0 +1,14 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"pattern": [
+		" F ",
+		"FBF",
+		" G "
+	],
+	"key": {
+		"F": { "item": "hostprotocol:infected_flesh" },
+		"B": { "item": "minecraft:glass_bottle" },
+		"G": { "item": "minecraft:gold_nugget" }
+	},
+	"result": { "item": "hostprotocol:infection_serum" }
+}

@@ -159,5 +159,50 @@
 				"pitch": 0.85
 			}
 		]
+	},
+	"voice.blueprint_update": {
+		"subtitle": "subtitles.hostprotocol.voice.blueprint_update",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/blueprint_update",
+				"stream": true
+			}
+		]
+	},
+	"voice.transfer_complete": {
+		"subtitle": "subtitles.hostprotocol.voice.transfer_complete",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/transfer_complete",
+				"stream": true
+			}
+		]
+	},
+	"voice.module_online": {
+		"subtitle": "subtitles.hostprotocol.voice.module_online",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/module_online",
+				"stream": true
+			}
+		]
+	},
+	"voice.septic_what": {
+		"subtitle": "subtitles.hostprotocol.voice.septic_what",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/septic_what",
+				"stream": true
+			}
+		]
+	},
+	"voice.whisper_ambience": {
+		"subtitle": "subtitles.hostprotocol.voice.whisper_ambience",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/whisper_ambience",
+				"stream": true
+			}
+		]
 	}
 }

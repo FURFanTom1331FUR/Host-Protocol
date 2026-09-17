@@ -113,6 +113,14 @@ public final class PdaService {
 		forEachPda(player, PdaItem::markLabBlueprints);
 	}
 
+	public static void stampTransferred(ServerPlayer player) {
+		forEachPda(player, PdaItem::markTransferred);
+	}
+
+	public static void stampBaseBlueprints(ServerPlayer player) {
+		forEachPda(player, PdaItem::markBaseBlueprints);
+	}
+
 	public static void appendSensorLog(ServerPlayer player, String line) {
 		forEachPda(player, stack -> PdaItem.appendSensorLog(stack, line));
 	}
@@ -139,6 +147,12 @@ public final class PdaService {
 		}
 		if (data.hasLabBlueprints(playerId)) {
 			PdaItem.markLabBlueprints(stack);
+		}
+		if (data.hasTransferred(playerId)) {
+			PdaItem.markTransferred(stack);
+		}
+		if (data.hasBaseBlueprints(playerId)) {
+			PdaItem.markBaseBlueprints(stack);
 		}
 	}
 

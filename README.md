@@ -1,6 +1,6 @@
 # Host Protocol (Fabric 1.20.1)
 
-Мод **Host Protocol** — интро: заставка, расширенные титры с Испытуемым (ID на мир), ошибка подключения и глитч-материализация персонажа. Пока интро идёт, мир заморожен и игровые звуки не проходят. После завершения выдаётся **один КПК / Host Protocol PDA** (с короткой материализацией), на экране всегда виден **счётчик дней**, на рассвете — объявление нового дня. Со 2-го дня **сразу** (не только ночью) стартует очаг заражения. Через ~20–30 с — координаты (чат + title + голос); ещё ~5–10 с — auto-Septic даже без сна. `/hostprotocol day2` прогоняет всё одной командой. Если остаётесь в мире на **день 3** ~10 с — kick на title и файл на рабочем столе.
+Мод **Host Protocol** — интро: заставка, расширенные титры с Испытуемым (ID на мир), ошибка подключения и глитч-материализация персонажа. Пока интро идёт, мир заморожен и игровые звуки не проходят. После завершения выдаётся **один КПК / Host Protocol PDA** (с короткой материализацией), на экране всегда виден **счётчик дней**, на рассвете — объявление нового дня. Со 2-го дня **сразу** (не только ночью) стартует очаг заражения. Через ~20–30 с — координаты (чат + title + голос); ещё ~5–10 с — auto-Septic даже без сна. `/hostprotocol day2` прогоняет всё одной командой. Если остаётесь в мире на **день 3** ~10 с — kick на title и файл на рабочем столе. Дальше: **сканер (луч) → скан железной руды → лабораторный стол + оболочка MK-II → перенос ассистента → сыворотка/костюм**, заражённые мобы у очага, **день 5 — присутствие Septic**.
 
 - **modid:** `hostprotocol`
 - **Minecraft:** 1.20.1
@@ -236,7 +236,7 @@ Diamond | Iron Ingot | Copper Ingot
 
 **Первый успешный скан железной руды** (`iron_ore` / `deepslate_iron_ore`) — один раз на игрока:
 
-- Сообщения в чат (RU/EN): можно создать **новый КПК** и перенестись в новый модуль; нужен **лабораторный стол**.
+- Голос `blueprint_update.ogg` + title/чат (RU/EN): ассистент обновила данные; **два чертежа** — лабораторный стол и новый КПК; перенос — на столе, старый и новый КПК вместе.
 - В КПК (вкладка **ЧЕРТЕЖ**) открываются чертежи **лабораторного стола** и **КПК МК-II**.
 - Флаг пишется в данные мира (`LabBlueprintLogs`); повтор железа не повторяет beat.
 
@@ -270,9 +270,33 @@ Iron | Glass | Iron
 → hostprotocol:pda_mk2  («КПК Host Protocol МК-II»)
 ```
 
-Новый КПК: отдельное имя/текстура, те же вкладки плюс **МОДУЛЬ** (заглушка переноса сознания + сенсорный лог). Полный transfer gameplay вне скоупа.
+Новый КПК: оболочка офлайн, пока на **лабораторном столе 5×5** не лежат вместе старый `hostprotocol:pda` и `hostprotocol:pda_mk2`. Результат — **активированный чистый MK-II** (NBT `Activated`). Голос `transfer_complete.ogg` + частицы. После переноса открываются чертежи **сыворотки** и **защитного костюма**.
 
-Проверка крафта без скана железа (читерски): `/give @s hostprotocol:lab_table` и ингредиенты, либо сначала просканируйте железо, чтобы чертежи появились в КПК.
+Первое использование активированного MK-II: `module_online.ogg`, кольцо частиц, оверлей. Вкладки **ЗДОРОВЬЕ** (HP / голод / инфекция), **СКАНЫ**, **ИИ** (чистый ассистент). Неактивированная оболочка показывает вкладку **МОДУЛЬ** и сенсорный лог.
+
+Проверка крафта без скана железа (читерски): `/give @s hostprotocol:lab_table` и ингредиенты, либо `/hostprotocol forceironscan`, либо сначала просканируйте железо, чтобы чертежи появились в КПК.
+
+Перенос без крафта:
+
+```
+/hostprotocol forcetransfer
+```
+
+### Заражённые мобы, сыворотка, костюм
+
+У очага живые сущности получают тёмный «энд-портальный» тинт и эффект инфекции. С убитых падает `hostprotocol:infected_flesh`. Сыворотка 3×3 (плоть + бутылка + золотой самородок) снимает эффект. Защитный костюм — полный сет (шлем/грудь/ноги/ботинки) из плоти + железа.
+
+### День 5 — присутствие Septic
+
+`dayIndex >= 5` (`/time set 96000`): рядом спавнится сущность **Septic** (присутствие, не босс). Шёпот `whisper_ambience.ogg` + лёгкие глитчи. Взгляд на Septic — круглая виньетка, глаза на HUD, голос `septic_what.ogg` «Что ты такое. Ты вроде не из этого мира.» (кулдаун).
+
+```
+/hostprotocol spawnseptic
+```
+
+`/hostprotocol status` показывает infection, focus, coords, septic, protocol breached, lab blueprints, transfer, MK-II boot.
+
+Вне скоупа: полный ИИ босса Septic, концовка Энда, машина лечения мира.
 
 ### Протокол взломан (coords + connection)
 
@@ -323,8 +347,6 @@ Iron | Glass | Iron
 
 `/hostprotocol status` показывает infection, focus, coords, septic, protocol breached, lab blueprints.
 
-Вне скоупа: ИИ моба Septic, лечение, полный «перенос сознания» (на МК-II только текст).
-
 ## Голос / SFX
 
 Зарегистрированы `SoundEvent` и лежат OGG:
@@ -346,18 +368,24 @@ src/main/resources/assets/hostprotocol/sounds/voice/
   signal_lost.ogg
   signal_lost_tone.ogg      (длинный гудок)
   bunker_siren.ogg          (тихо под женским VO, не primary)
+  blueprint_update.ogg      (ассистент: чертежи обновлены)
+  transfer_complete.ogg
+  module_online.ogg
+  septic_what.ogg           («Что ты такое. Ты вроде не из этого мира.»)
+  whisper_ambience.ogg
 ```
 
 ## Структура
 
 ```
-src/main/java/ru/hostprotocol/     — сервер/общая логика, freeze, КПК, дни мира, очаг, Septic, Day3 kick, данные, звуки, сеть, /hostprotocol
-src/client/java/ru/hostprotocol/   — клиент: IntroScreen, PdaScreen (чертежи 3×3 иконками), LabTableScreen 5×5, HUD скана, луч
+src/main/java/ru/hostprotocol/     — сервер/общая логика, freeze, КПК, дни мира, очаг, Septic, Day3 kick, lab 5×5, скан-луч, данные, звуки, сеть, /hostprotocol
+src/client/java/ru/hostprotocol/   — клиент: IntroScreen, PdaScreen (чертежи 3×3 иконками + MK-II assistant), LabTableScreen 5×5, HUD скана, луч, виньетка Day-5
 src/main/resources/assets/hostprotocol/lang/ — ru_ru + en_us
-src/main/resources/data/hostprotocol/recipes/scanner.json, lab_table.json
+src/main/resources/data/hostprotocol/recipes/scanner.json, lab_table.json, infection_serum.json, protective_*.json
 src/main/resources/data/hostprotocol/tags/blocks/scannable_ores.json
 src/main/resources/assets/hostprotocol/textures/block/infection_overlay.png
-src/main/resources/assets/hostprotocol/sounds/voice/ — женский VO дня 2/3
+src/main/resources/assets/hostprotocol/textures/gui/septic_vignette.png, septic_eyes.png
+src/main/resources/assets/hostprotocol/sounds/voice/ — женский VO дня 2/3 + voice3 pack
 ```
 
 ## Дизайн

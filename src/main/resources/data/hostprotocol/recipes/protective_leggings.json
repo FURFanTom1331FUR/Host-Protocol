@@ -1,0 +1,13 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"pattern": [
+		"FIF",
+		"F F",
+		"F F"
+	],
+	"key": {
+		"F": { "item": "hostprotocol:infected_flesh" },
+		"I": { "item": "minecraft:iron_ingot" }
+	},
+	"result": { "item": "hostprotocol:protective_leggings" }
+}

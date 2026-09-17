@@ -25,6 +25,11 @@ public final class ModSounds {
 	public static final SoundEvent SCAN_HUM = create("scan.hum");
 	public static final SoundEvent SCAN_COMPLETE = create("scan.complete");
 	public static final SoundEvent SCAN_FAIL = create("scan.fail");
+	public static final SoundEvent VOICE_BLUEPRINT_UPDATE = create("voice.blueprint_update");
+	public static final SoundEvent VOICE_TRANSFER_COMPLETE = create("voice.transfer_complete");
+	public static final SoundEvent VOICE_MODULE_ONLINE = create("voice.module_online");
+	public static final SoundEvent VOICE_SEPTIC_WHAT = create("voice.septic_what");
+	public static final SoundEvent VOICE_WHISPER_AMBIENCE = create("voice.whisper_ambience");
 
 	private ModSounds() {}
 
@@ -52,6 +57,11 @@ public final class ModSounds {
 		register(SCAN_HUM);
 		register(SCAN_COMPLETE);
 		register(SCAN_FAIL);
+		register(VOICE_BLUEPRINT_UPDATE);
+		register(VOICE_TRANSFER_COMPLETE);
+		register(VOICE_MODULE_ONLINE);
+		register(VOICE_SEPTIC_WHAT);
+		register(VOICE_WHISPER_AMBIENCE);
 	}
 
 	private static void register(SoundEvent event) {
