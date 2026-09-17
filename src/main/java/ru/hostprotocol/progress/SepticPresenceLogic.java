@@ -5,9 +5,10 @@ package ru.hostprotocol.progress;
  */
 public final class SepticPresenceLogic {
 	public static final int FIRST_DAY = 5;
-	/** ~23° cone. */
-	public static final double LOOK_DOT = 0.92;
-	public static final double LOOK_RANGE = 40.0;
+	/** Wide cone (~60°) so looking at the body still counts. */
+	public static final double LOOK_DOT = 0.50;
+	public static final double LOOK_RANGE = 64.0;
+	public static final double LOOK_BOX_INFLATE = 1.15;
 	/** 30s between look-at chat bursts so a stare cannot spam. */
 	public static final int LOOK_CHAT_COOLDOWN_TICKS = 20 * 30;
 	/** Brief punch (FOV / shake / flicker) on the rising edge of a look. */
@@ -24,7 +25,7 @@ public final class SepticPresenceLogic {
 	}
 
 	public static boolean isLookingAt(double dot, double distance) {
-		return distance > 0.4 && distance <= LOOK_RANGE && dot >= LOOK_DOT;
+		return distance > 0.2 && distance <= LOOK_RANGE && dot >= LOOK_DOT;
 	}
 
 	/**

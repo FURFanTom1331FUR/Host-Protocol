@@ -8,8 +8,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import ru.hostprotocol.HostProtocolMod;
 import ru.hostprotocol.client.ProtocolClientState;
@@ -89,7 +88,11 @@ public final class SepticPresenceClientFx {
 		boolean day5 = ProtocolClientState.syncedDay() >= SepticPresenceLogic.FIRST_DAY
 				|| ProtocolClientState.isSepticPresent();
 		looking = nearest != null && isLookingAt(player, nearest);
-		lookBlend = Mth.clamp(lookBlend + (looking ? 0.22F : -0.10F), 0.0F, 1.0F);
+		if (looking) {
+			lookBlend = 1.0F;
+		} else {
+			lookBlend = Mth.clamp(lookBlend - 0.16F, 0.0F, 1.0F);
+		}
 
 		boolean whisper = day5 && (nearest != null && player.distanceTo(nearest) < 48.0F || ProtocolClientState.isSepticPresent());
 		if (whisper) {
@@ -182,6 +185,17 @@ public final class SepticPresenceClientFx {
 	private static SepticEntity findNearest(Minecraft minecraft, Player player) {
 		SepticEntity best = null;
 		double bestD = Double.MAX_VALUE;
+		AABB search = player.getBoundingBox().inflate(SepticPresenceLogic.LOOK_RANGE);
+		for (SepticEntity septic : minecraft.level.getEntitiesOfClass(SepticEntity.class, search, Entity::isAlive)) {
+			double d = player.distanceToSqr(septic);
+			if (d < bestD) {
+				bestD = d;
+				best = septic;
+			}
+		}
+		if (best != null) {
+			return best;
+		}
 		for (Entity entity : minecraft.level.entitiesForRendering()) {
 			if (entity instanceof SepticEntity septic && septic.isAlive()) {
 				double d = player.distanceToSqr(septic);
@@ -196,19 +210,20 @@ public final class SepticPresenceClientFx {
 
 	private static boolean isLookingAt(Player player, SepticEntity septic) {
 		Vec3 eye = player.getEyePosition();
-		Vec3 target = septic.getEyePosition();
-		double dist = eye.distanceTo(target);
 		Vec3 look = player.getViewVector(1.0F);
+		double range = SepticPresenceLogic.LOOK_RANGE;
+		Vec3 end = eye.add(look.scale(range));
+		if (septic.getBoundingBox().inflate(SepticPresenceLogic.LOOK_BOX_INFLATE).clip(eye, end).isPresent()) {
+			return eye.distanceTo(septic.position()) <= range;
+		}
+		Vec3 target = septic.getBoundingBox().getCenter();
 		Vec3 to = target.subtract(eye);
 		if (to.lengthSqr() < 1.0E-6) {
 			return false;
 		}
-		double dot = look.normalize().dot(to.normalize());
-		if (!SepticPresenceLogic.isLookingAt(dot, dist)) {
-			return false;
-		}
-		HitResult hit = player.level().clip(new ClipContext(eye, target, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
-		return hit.getType() == HitResult.Type.MISS || hit.getLocation().distanceTo(eye) >= dist - 0.6;
+		double dist = to.length();
+		double dot = look.normalize().dot(to.scale(1.0 / dist));
+		return SepticPresenceLogic.isLookingAt(dot, dist);
 	}
 
 	private static void ensureWhispers(Minecraft minecraft) {
