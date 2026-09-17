@@ -40,6 +40,7 @@ public final class HorrorClientFx {
 	private static int lookScreamerCooldown;
 	private static int continuousLook;
 	private static boolean secondStareUsed;
+	private static boolean firstScreamerThisGaze;
 
 	private HorrorClientFx() {}
 
@@ -101,6 +102,7 @@ public final class HorrorClientFx {
 		lookScreamerCooldown = 0;
 		continuousLook = 0;
 		secondStareUsed = false;
+		firstScreamerThisGaze = false;
 		pdaBetrayQueued = false;
 		pdaFlashedThisSession = false;
 	}
@@ -126,11 +128,13 @@ public final class HorrorClientFx {
 		} else {
 			continuousLook = 0;
 			secondStareUsed = false;
+			firstScreamerThisGaze = false;
 		}
 		if (HorrorEventLogic.shouldLookScreamer(day, looking, looking && continuousLook > 1, lookScreamerCooldown)
 				&& continuousLook == 1) {
+			firstScreamerThisGaze = true;
 			beginSilenceThenScreamer(minecraft, false);
-		} else if (HorrorEventLogic.shouldSecondStare(day, looking, continuousLook, lookScreamerCooldown, secondStareUsed)) {
+		} else if (HorrorEventLogic.shouldSecondStare(day, looking, continuousLook, secondStareUsed, firstScreamerThisGaze)) {
 			secondStareUsed = true;
 			playScreamer(minecraft, true);
 		}

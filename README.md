@@ -6,6 +6,27 @@
 - **Minecraft:** 1.20.1
 - **Loader:** Fabric
 - **Java:** 17+
+- **Version:** `0.1.3`
+
+## 0.1.3 — polish / stability (RU)
+
+Исправления поверх horror-среза 0.1.2, без новых систем:
+
+- Хелп: `/hostprotocol` и `/hostprotocol help` печатают QA-список. Команды `horror demo/screamer/stalker` **не** пишут one-shot флаги и кулдауны мира.
+- Сталкер больше не подменяет Day-5 присутствие, не сохраняется в мир и чистится при выходе / респауне / смене измерения. Спавн ищет воздух рядом с игроком (пещеры/дома), а не высоту поверхности.
+- Взгляд на Septic: уже конус, нужна линия взгляда; коридорный сталкер не бьёт лицом/скримером. Второй stare снова работает (раньше его убивал кулдаун первого удара).
+- HUD/FOV/туман/шёпот сбрасываются при смерти, дисконнекте и смене измерения; фиолетовый fog только в верхнем мире у очага. Скример-оверлей больше не рисуется дважды поверх HUD.
+- Чертежи в КПК совпадают с реальными рецептами (сканер / стол / MK-II). NBT `Activated` на переносе MK-II закреплён явно.
+
+## 0.1.3 — polish / stability (EN)
+
+Fixes on top of the 0.1.2 horror slice, no new content systems:
+
+- `/hostprotocol` / `/hostprotocol help` lists QA commands. Horror demo commands do **not** consume world one-shots or scare cooldowns.
+- Hallway stalkers no longer steal the Day-5 presence slot, are not saved, and are discarded on leave / respawn / dimension change. Spawn prefers standable air at the player’s Y (caves/interiors).
+- Look-at: tighter cone + line of sight; stalkers do not trigger the face slam or screamers. The rare second stare works again (the 50s cooldown had made it dead code).
+- HUD / FOV / fog / whispers reset on death, disconnect, and dimension change; purple infection fog is overworld-only. Screamer overlay is not double-painted over the HUD.
+- PDA blueprint text matches the real recipes. MK-II transfer always writes `Activated`.
 
 ## Требования
 
@@ -38,7 +59,7 @@ Linux / macOS:
 Готовый jar:
 
 ```
-build/libs/hostprotocol-0.1.2.jar
+build/libs/hostprotocol-0.1.3.jar
 ```
 
 (имя может чуть отличаться — смотрите `build/libs/`).
@@ -288,7 +309,9 @@ Iron | Glass | Iron
 
 ### День 5 — присутствие Septic
 
-`dayIndex >= 5` (`/time set 96000`): рядом спавнится сущность **Septic**. На голове — фотореалистичное **лицо без глаз** (чёрная жидкость). Взгляд на тело/голову (широкий конус, до 64 блоков) сразу закрывает экран тем же лицом. Голоса нет. Чат один раз за взгляд (30 с).
+`dayIndex >= 5` (`/time set 96000`): рядом спавнится сущность **Septic**. На голове — фотореалистичное **лицо без глаз** (чёрная жидкость). Взгляд на тело/голову (конус, линия взгляда, до 64 блоков) закрывает экран тем же лицом. Голоса нет. Чат один раз за взгляд (30 с). Коридорный сталкер — только силуэт, без slam.
+
+`/hostprotocol` / `/hostprotocol help` — список QA-команд (без kick, кроме пребывания на дне 3).
 
 ```
 /hostprotocol spawnseptic
@@ -300,7 +323,7 @@ Iron | Glass | Iron
 /hostprotocol horror stalker
 ```
 
-`horror demo` — сталкер сейчас + скример через ~1.5 с (без kick). QA-команды не ставят one-shot флаги мира.
+`horror demo` — сталкер сейчас + скример через ~1.5 с (без kick). QA-команды **не** ставят one-shot флаги мира и **не** сжигают кулдауны скримера/сталкера.
 
 `/hostprotocol status` показывает infection, focus, coords, septic, protocol breached, lab blueprints, transfer, MK-II boot.
 

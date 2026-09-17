@@ -12,6 +12,7 @@ import ru.hostprotocol.data.IntroWorldData;
 import ru.hostprotocol.entity.ModEntityTypes;
 import ru.hostprotocol.entity.SepticEntity;
 import ru.hostprotocol.freeze.IntroFreeze;
+import ru.hostprotocol.horror.HorrorEventLogic;
 import ru.hostprotocol.network.ModNetworking;
 import ru.hostprotocol.progress.SepticPresenceLogic;
 import ru.hostprotocol.world.ProtocolTime;
@@ -88,13 +89,13 @@ public final class SepticPresenceController {
 		UUID id = data.getSepticEntityId();
 		if (id != null) {
 			Entity entity = level.getEntity(id);
-			if (entity instanceof SepticEntity septic && septic.isAlive()) {
+			if (entity instanceof SepticEntity septic && septic.isAlive() && HorrorEventLogic.isWorldPresence(septic.isHorrorStalker())) {
 				return septic;
 			}
 		}
 		for (ServerPlayer player : level.players()) {
 			AABB box = player.getBoundingBox().inflate(96.0);
-			List<SepticEntity> found = level.getEntitiesOfClass(SepticEntity.class, box, Living -> Living.isAlive());
+			List<SepticEntity> found = level.getEntitiesOfClass(SepticEntity.class, box, SepticPresenceController::isPresence);
 			if (!found.isEmpty()) {
 				SepticEntity septic = found.get(0);
 				data.setSepticEntityId(septic.getUUID());
@@ -103,7 +104,7 @@ public final class SepticPresenceController {
 		}
 		if (data.hasInfectionFocus()) {
 			AABB box = new AABB(data.getFocusPos()).inflate(96.0);
-			List<SepticEntity> found = level.getEntitiesOfClass(SepticEntity.class, box, e -> e.isAlive());
+			List<SepticEntity> found = level.getEntitiesOfClass(SepticEntity.class, box, SepticPresenceController::isPresence);
 			if (!found.isEmpty()) {
 				SepticEntity septic = found.get(0);
 				data.setSepticEntityId(septic.getUUID());
@@ -111,6 +112,10 @@ public final class SepticPresenceController {
 			}
 		}
 		return null;
+	}
+
+	private static boolean isPresence(SepticEntity septic) {
+		return septic.isAlive() && HorrorEventLogic.isWorldPresence(septic.isHorrorStalker());
 	}
 
 	private static void removeTracked(ServerLevel level, IntroWorldData data) {

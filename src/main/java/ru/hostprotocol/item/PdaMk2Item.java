@@ -61,6 +61,10 @@ public class PdaMk2Item extends PdaItem {
 		return out;
 	}
 
+	public static void markActivated(ItemStack stack) {
+		stack.getOrCreateTag().putBoolean(TAG_ACTIVATED, true);
+	}
+
 	@Override
 	public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
 		ItemStack stack = player.getItemInHand(hand);

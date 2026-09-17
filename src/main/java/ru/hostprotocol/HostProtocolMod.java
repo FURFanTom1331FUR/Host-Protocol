@@ -3,6 +3,8 @@ package ru.hostprotocol;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.EntitySleepEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
@@ -102,6 +104,18 @@ public class HostProtocolMod implements ModInitializer {
 			IntroFreeze.end(handler.player);
 			Day3DisconnectController.onDisconnect(handler.player, IntroWorldData.get(server.overworld()));
 			ScanService.clear(handler.player);
+			ru.hostprotocol.horror.HorrorEventScheduler.onPlayerLeave(handler.player);
+		});
+
+		ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, origin, destination) -> {
+			ScanService.clear(player);
+			ru.hostprotocol.horror.HorrorEventScheduler.discardStalkers(origin);
+		});
+
+		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
+			ScanService.clear(oldPlayer);
+			ScanService.clear(newPlayer);
+			ru.hostprotocol.horror.HorrorEventScheduler.discardStalkers(newPlayer.serverLevel());
 		});
 
 		ServerPlayNetworking.registerGlobalReceiver(ModNetworking.INTRO_COMPLETE_C2S, (server, player, handler, buf, responseSender) -> {
@@ -115,7 +129,7 @@ public class HostProtocolMod implements ModInitializer {
 			});
 		});
 
-		LOGGER.info("Host Protocol initialized (scanner beam, lab transfer, MK-II, Day-5 Septic, 0.1.2 horror)");
+		LOGGER.info("Host Protocol initialized (0.1.3 polish: scanner beam, lab transfer, MK-II, Day-5 Septic, horror)");
 	}
 
 	private static void registerInfectionGuards() {
@@ -165,6 +179,9 @@ public class HostProtocolMod implements ModInitializer {
 	private static void registerCommands() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(
 				Commands.literal("hostprotocol")
+						.executes(ctx -> sendHelp(ctx.getSource()))
+						.then(Commands.literal("help")
+								.executes(ctx -> sendHelp(ctx.getSource())))
 						.then(Commands.literal("replayintro")
 								.executes(ctx -> {
 									ServerPlayer player = ctx.getSource().getPlayerOrException();
@@ -252,14 +269,14 @@ public class HostProtocolMod implements ModInitializer {
 								.then(Commands.literal("screamer")
 										.executes(ctx -> {
 											ServerPlayer player = ctx.getSource().getPlayerOrException();
-											int result = ru.hostprotocol.horror.HorrorEventScheduler.fireScreamer(player, false);
+											int result = ru.hostprotocol.horror.HorrorEventScheduler.fireScreamer(player, false, false);
 											ctx.getSource().sendSuccess(() -> Component.translatable("hostprotocol.command.horror.screamer"), true);
 											return result;
 										}))
 								.then(Commands.literal("stalker")
 										.executes(ctx -> {
 											ServerPlayer player = ctx.getSource().getPlayerOrException();
-											int result = ru.hostprotocol.horror.HorrorEventScheduler.fireStalker(player);
+											int result = ru.hostprotocol.horror.HorrorEventScheduler.fireStalker(player, false);
 											ctx.getSource().sendSuccess(() -> Component.translatable("hostprotocol.command.horror.stalker"), true);
 											return result;
 										})))
@@ -320,5 +337,11 @@ public class HostProtocolMod implements ModInitializer {
 									return day;
 								}))
 		));
+	}
+
+	private static int sendHelp(net.minecraft.commands.CommandSourceStack source) {
+		source.sendSuccess(() -> Component.translatable("hostprotocol.command.help.header"), false);
+		source.sendSuccess(() -> Component.translatable("hostprotocol.command.help.body"), false);
+		return 1;
 	}
 }

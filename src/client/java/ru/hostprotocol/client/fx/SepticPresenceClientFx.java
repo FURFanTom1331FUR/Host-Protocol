@@ -14,6 +14,7 @@ import ru.hostprotocol.HostProtocolMod;
 import ru.hostprotocol.client.ProtocolClientState;
 import ru.hostprotocol.client.sound.LoopingUiSound;
 import ru.hostprotocol.entity.SepticEntity;
+import ru.hostprotocol.horror.HorrorEventLogic;
 import ru.hostprotocol.progress.SepticPresenceLogic;
 import ru.hostprotocol.sound.ModSounds;
 
@@ -57,7 +58,7 @@ public final class SepticPresenceClientFx {
 		return lookBlend;
 	}
 
-	public static void cancel(Minecraft minecraft) {
+	public static void resetLookState(Minecraft minecraft) {
 		looking = false;
 		wasLooking = false;
 		lookBlend = 0.0F;
@@ -65,6 +66,10 @@ public final class SepticPresenceClientFx {
 		hudTicks = 0;
 		nearest = null;
 		stopWhispers(minecraft);
+	}
+
+	public static void cancel(Minecraft minecraft) {
+		resetLookState(minecraft);
 		HorrorClientFx.cancel(minecraft);
 	}
 
@@ -78,25 +83,26 @@ public final class SepticPresenceClientFx {
 		if (hudTicks > 0) {
 			hudTicks--;
 		}
-		if (minecraft == null || minecraft.player == null || minecraft.level == null) {
-			looking = false;
-			wasLooking = false;
-			stopWhispers(minecraft);
+		if (minecraft == null || minecraft.player == null || minecraft.level == null || minecraft.player.isDeadOrDying()) {
+			resetLookState(minecraft);
 			return;
 		}
 		Player player = minecraft.player;
 		nearest = findNearest(minecraft, player);
 		boolean day5 = ProtocolClientState.syncedDay() >= SepticPresenceLogic.FIRST_DAY
 				|| ProtocolClientState.isSepticPresent();
-		looking = nearest != null && isLookingAt(player, nearest);
+		SepticEntity presence = nearest != null && HorrorEventLogic.isWorldPresence(nearest.isHorrorStalker())
+				? nearest
+				: findNearestPresence(minecraft, player);
+		looking = presence != null && isLookingAt(player, presence);
 		if (looking) {
 			lookBlend = 1.0F;
 		} else {
 			lookBlend = Mth.clamp(lookBlend - 0.16F, 0.0F, 1.0F);
 		}
 
-		boolean whisper = day5 && (nearest != null && player.distanceTo(nearest) < 48.0F || ProtocolClientState.isSepticPresent());
-		if (whisper) {
+		boolean nearWhisper = nearest != null && player.distanceTo(nearest) < (nearest.isHorrorStalker() ? 16.0F : 48.0F);
+		if (day5 && nearWhisper) {
 			ensureWhispers(minecraft);
 		} else {
 			stopWhispers(minecraft);
@@ -108,8 +114,7 @@ public final class SepticPresenceClientFx {
 			hudTicks = SepticPresenceLogic.LOOK_HUD_TICKS;
 			sendLookChat(minecraft);
 		}
-		int day = ProtocolClientState.syncedDay();
-		HorrorClientFx.onLookTick(minecraft, Math.max(day, day5 ? SepticPresenceLogic.FIRST_DAY : day), looking);
+		HorrorClientFx.onLookTick(minecraft, ProtocolClientState.syncedDay(), looking);
 		wasLooking = looking;
 	}
 
@@ -196,39 +201,44 @@ public final class SepticPresenceClientFx {
 	}
 
 	private static SepticEntity findNearest(Minecraft minecraft, Player player) {
+		return findNearest(minecraft, player, false);
+	}
+
+	private static SepticEntity findNearestPresence(Minecraft minecraft, Player player) {
+		return findNearest(minecraft, player, true);
+	}
+
+	private static SepticEntity findNearest(Minecraft minecraft, Player player, boolean presenceOnly) {
 		SepticEntity best = null;
 		double bestD = Double.MAX_VALUE;
-		AABB search = player.getBoundingBox().inflate(SepticPresenceLogic.LOOK_RANGE);
+		double maxRange = SepticPresenceLogic.LOOK_RANGE;
+		AABB search = player.getBoundingBox().inflate(maxRange);
 		for (SepticEntity septic : minecraft.level.getEntitiesOfClass(SepticEntity.class, search, Entity::isAlive)) {
+			if (presenceOnly && !HorrorEventLogic.isWorldPresence(septic.isHorrorStalker())) {
+				continue;
+			}
 			double d = player.distanceToSqr(septic);
-			if (d < bestD) {
+			if (d < bestD && d <= maxRange * maxRange) {
 				bestD = d;
 				best = septic;
-			}
-		}
-		if (best != null) {
-			return best;
-		}
-		for (Entity entity : minecraft.level.entitiesForRendering()) {
-			if (entity instanceof SepticEntity septic && septic.isAlive()) {
-				double d = player.distanceToSqr(septic);
-				if (d < bestD) {
-					bestD = d;
-					best = septic;
-				}
 			}
 		}
 		return best;
 	}
 
 	private static boolean isLookingAt(Player player, SepticEntity septic) {
+		if (!HorrorEventLogic.isWorldPresence(septic.isHorrorStalker())) {
+			return false;
+		}
+		if (!player.hasLineOfSight(septic)) {
+			return false;
+		}
 		Vec3 eye = player.getEyePosition();
 		Vec3 look = player.getViewVector(1.0F);
 		double range = SepticPresenceLogic.LOOK_RANGE;
 		Vec3 end = eye.add(look.scale(range));
-		if (septic.getBoundingBox().inflate(SepticPresenceLogic.LOOK_BOX_INFLATE).clip(eye, end).isPresent()) {
-			return eye.distanceTo(septic.position()) <= range;
-		}
+		boolean rayHit = septic.getBoundingBox().inflate(SepticPresenceLogic.LOOK_BOX_INFLATE).clip(eye, end).isPresent()
+				&& eye.distanceTo(septic.position()) <= range;
 		Vec3 target = septic.getBoundingBox().getCenter();
 		Vec3 to = target.subtract(eye);
 		if (to.lengthSqr() < 1.0E-6) {
@@ -236,7 +246,7 @@ public final class SepticPresenceClientFx {
 		}
 		double dist = to.length();
 		double dot = look.normalize().dot(to.scale(1.0 / dist));
-		return SepticPresenceLogic.isLookingAt(dot, dist);
+		return rayHit || SepticPresenceLogic.shouldLookOverlay(true, true, dot, dist);
 	}
 
 	private static void ensureWhispers(Minecraft minecraft) {

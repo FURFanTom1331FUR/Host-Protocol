@@ -94,18 +94,27 @@ public final class HorrorEventLogic {
 		return day >= SCREAMER_MIN_DAY && lookingNow && !wasLooking && cooldownTicks <= 0;
 	}
 
+	/**
+	 * Second slam during the same gaze. Independent of the 50s re-look cooldown — that cooldown
+	 * is set by the first beat, so requiring it idle made the second stare dead code.
+	 */
 	public static boolean shouldSecondStare(
 			int day,
 			boolean looking,
 			int continuousLookTicks,
-			int cooldownTicks,
-			boolean secondUsed
+			boolean secondUsed,
+			boolean firstFiredThisGaze
 	) {
 		return day >= SCREAMER_MIN_DAY
 				&& looking
+				&& firstFiredThisGaze
 				&& !secondUsed
-				&& continuousLookTicks >= SECOND_STARE_TICKS
-				&& cooldownTicks <= 0;
+				&& continuousLookTicks >= SECOND_STARE_TICKS;
+	}
+
+	/** Hallway stalkers are glimpses, not the Day-5 presence node. */
+	public static boolean isWorldPresence(boolean horrorStalker) {
+		return !horrorStalker;
 	}
 
 	public static boolean shouldFocusNightScreamer(int day, boolean night, boolean nearFocus, boolean alreadyFired) {

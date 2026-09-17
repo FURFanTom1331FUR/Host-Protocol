@@ -5,10 +5,10 @@ package ru.hostprotocol.progress;
  */
 public final class SepticPresenceLogic {
 	public static final int FIRST_DAY = 5;
-	/** Wide cone (~60°) so looking at the body still counts. */
-	public static final double LOOK_DOT = 0.50;
+	/** ~44° cone: body still counts, glancing past a wall does not. */
+	public static final double LOOK_DOT = 0.72;
 	public static final double LOOK_RANGE = 64.0;
-	public static final double LOOK_BOX_INFLATE = 1.15;
+	public static final double LOOK_BOX_INFLATE = 0.45;
 	/** 30s between look-at chat bursts so a stare cannot spam. */
 	public static final int LOOK_CHAT_COOLDOWN_TICKS = 20 * 30;
 	/** Brief punch (FOV / shake / flicker) on the rising edge of a look. */
@@ -26,6 +26,14 @@ public final class SepticPresenceLogic {
 
 	public static boolean isLookingAt(double dot, double distance) {
 		return distance > 0.2 && distance <= LOOK_RANGE && dot >= LOOK_DOT;
+	}
+
+	/**
+	 * Look-at slam needs a living presence (not a hallway stalker), a real line of sight,
+	 * and the cone/range gate. Wall-through and peripheral false positives were slapping the HUD.
+	 */
+	public static boolean shouldLookOverlay(boolean presenceSeptic, boolean lineOfSight, double dot, double distance) {
+		return presenceSeptic && lineOfSight && isLookingAt(dot, distance);
 	}
 
 	/**

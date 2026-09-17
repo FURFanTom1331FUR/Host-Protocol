@@ -1,5 +1,6 @@
 package ru.hostprotocol.horror;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -7,7 +8,8 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import ru.hostprotocol.HostProtocolMod;
 import ru.hostprotocol.data.IntroWorldData;
@@ -59,33 +61,62 @@ public final class HorrorEventScheduler {
 	}
 
 	public static int fireScreamer(ServerPlayer player, boolean secondBeat) {
+		return fireScreamer(player, secondBeat, true);
+	}
+
+	public static int fireScreamer(ServerPlayer player, boolean secondBeat, boolean persistCooldown) {
 		ModNetworking.sendHorrorEvent(player, HorrorKind.SCREAMER, secondBeat ? 1 : 0);
-		IntroWorldData data = IntroWorldData.get(player.serverLevel().getServer().overworld());
-		data.setHorrorTime(player.getUUID(), HorrorEventLogic.TIME_LAST_SCREAMER, player.serverLevel().getGameTime());
-		HostProtocolMod.LOGGER.info("[Host Protocol] HORROR SCREAMER player={} second={}",
-				player.getGameProfile().getName(), secondBeat);
+		if (persistCooldown) {
+			IntroWorldData data = IntroWorldData.get(player.serverLevel().getServer().overworld());
+			data.setHorrorTime(player.getUUID(), HorrorEventLogic.TIME_LAST_SCREAMER, player.serverLevel().getGameTime());
+		}
+		HostProtocolMod.LOGGER.info("[Host Protocol] HORROR SCREAMER player={} second={} persist={}",
+				player.getGameProfile().getName(), secondBeat, persistCooldown);
 		return 1;
 	}
 
 	public static int fireStalker(ServerPlayer player) {
+		return fireStalker(player, true);
+	}
+
+	public static int fireStalker(ServerPlayer player, boolean persistCooldown) {
 		SepticEntity septic = spawnStalker(player);
 		if (septic == null) {
 			return 0;
 		}
 		ModNetworking.sendHorrorEvent(player, HorrorKind.STALKER);
-		IntroWorldData data = IntroWorldData.get(player.serverLevel().getServer().overworld());
-		data.setHorrorTime(player.getUUID(), HorrorEventLogic.TIME_LAST_STALKER, player.serverLevel().getGameTime());
-		HostProtocolMod.LOGGER.info("[Host Protocol] HORROR STALKER player={} at {}",
-				player.getGameProfile().getName(), septic.blockPosition());
+		if (persistCooldown) {
+			IntroWorldData data = IntroWorldData.get(player.serverLevel().getServer().overworld());
+			data.setHorrorTime(player.getUUID(), HorrorEventLogic.TIME_LAST_STALKER, player.serverLevel().getGameTime());
+		}
+		HostProtocolMod.LOGGER.info("[Host Protocol] HORROR STALKER player={} at {} persist={}",
+				player.getGameProfile().getName(), septic.blockPosition(), persistCooldown);
 		return 1;
 	}
 
 	public static int fireDemo(ServerPlayer player) {
-		fireStalker(player);
+		fireStalker(player, false);
 		DEMO_SCREAMER_IN.put(player.getUUID(), 35);
 		ModNetworking.sendHorrorEvent(player, HorrorKind.FAKE_JOIN);
 		HostProtocolMod.LOGGER.info("[Host Protocol] HORROR DEMO player={}", player.getGameProfile().getName());
 		return 1;
+	}
+
+	public static void onPlayerLeave(ServerPlayer player) {
+		DEMO_SCREAMER_IN.remove(player.getUUID());
+		discardStalkers(player.serverLevel());
+	}
+
+	public static void discardStalkers(ServerLevel level) {
+		if (level == null) {
+			return;
+		}
+		for (ServerPlayer player : level.players()) {
+			AABB box = player.getBoundingBox().inflate(96.0);
+			for (SepticEntity septic : level.getEntitiesOfClass(SepticEntity.class, box, SepticEntity::isHorrorStalker)) {
+				septic.discard();
+			}
+		}
 	}
 
 	private static void tickDemo(MinecraftServer server) {
@@ -100,7 +131,7 @@ public final class HorrorEventScheduler {
 			DEMO_SCREAMER_IN.remove(id);
 			ServerPlayer player = server.getPlayerList().getPlayer(id);
 			if (player != null) {
-				fireScreamer(player, false);
+				fireScreamer(player, false, false);
 			}
 		}
 	}
@@ -187,7 +218,7 @@ public final class HorrorEventScheduler {
 		if (septic == null) {
 			return null;
 		}
-		var pos = stalkerPos(player);
+		BlockPos pos = stalkerPos(player);
 		int life = HorrorEventLogic.stalkerLife(level.getSeed(), level.getGameTime());
 		septic.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, 0.0F, 0.0F);
 		double dx = player.getX() - septic.getX();
@@ -197,13 +228,15 @@ public final class HorrorEventScheduler {
 		septic.setYHeadRot(yaw);
 		septic.setYBodyRot(yaw);
 		septic.markHorrorStalker(life);
-		level.addFreshEntity(septic);
+		if (!level.addFreshEntity(septic)) {
+			return null;
+		}
 		level.playSound(null, pos, SoundEvents.WOODEN_DOOR_CLOSE, SoundSource.HOSTILE, 0.95F, 0.32F + level.random.nextFloat() * 0.08F);
 		level.playSound(null, pos, SoundEvents.AMBIENT_CAVE.value(), SoundSource.AMBIENT, 0.85F, 0.45F);
 		return septic;
 	}
 
-	private static net.minecraft.core.BlockPos stalkerPos(ServerPlayer player) {
+	private static BlockPos stalkerPos(ServerPlayer player) {
 		RandomSource random = player.getRandom();
 		Vec3 look = player.getViewVector(1.0F);
 		Vec3 side = new Vec3(-look.z, 0.0, look.x);
@@ -211,21 +244,43 @@ public final class HorrorEventScheduler {
 			side = new Vec3(1.0, 0.0, 0.0);
 		}
 		side = side.normalize();
-		Vec3 off;
-		if (random.nextFloat() < 0.7F) {
-			off = look.scale(-(2.6 + random.nextDouble() * 1.8)).add(side.scale((random.nextDouble() - 0.5) * 2.4));
-		} else {
-			double dir = random.nextBoolean() ? 1.0 : -1.0;
-			off = look.scale(6.5 + random.nextDouble() * 5.0).add(side.scale(dir * (3.2 + random.nextDouble() * 2.8)));
-		}
-		Vec3 at = player.position().add(off);
 		ServerLevel level = player.serverLevel();
-		int x = Mth.floor(at.x);
-		int z = Mth.floor(at.z);
-		int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
-		if (Math.abs(y - player.getBlockY()) > 5) {
-			y = player.getBlockY();
+		for (int attempt = 0; attempt < 10; attempt++) {
+			Vec3 off;
+			if (random.nextFloat() < 0.7F) {
+				off = look.scale(-(2.6 + random.nextDouble() * 1.8)).add(side.scale((random.nextDouble() - 0.5) * 2.4));
+			} else {
+				double dir = random.nextBoolean() ? 1.0 : -1.0;
+				off = look.scale(6.5 + random.nextDouble() * 5.0).add(side.scale(dir * (3.2 + random.nextDouble() * 2.8)));
+			}
+			Vec3 at = player.position().add(off);
+			BlockPos stand = findStandPos(level, Mth.floor(at.x), Mth.floor(at.z), player.getBlockY());
+			if (stand != null) {
+				return stand;
+			}
 		}
-		return new net.minecraft.core.BlockPos(x, y, z);
+		BlockPos behind = player.blockPosition().relative(player.getDirection().getOpposite(), 2);
+		BlockPos stand = findStandPos(level, behind.getX(), behind.getZ(), player.getBlockY());
+		return stand != null ? stand : player.blockPosition();
+	}
+
+	private static BlockPos findStandPos(ServerLevel level, int x, int z, int playerY) {
+		for (int dy = 2; dy >= -3; dy--) {
+			BlockPos feet = new BlockPos(x, playerY + dy, z);
+			if (canStand(level, feet)) {
+				return feet;
+			}
+		}
+		return null;
+	}
+
+	private static boolean canStand(ServerLevel level, BlockPos feet) {
+		if (!level.isInWorldBounds(feet) || !level.isLoaded(feet)) {
+			return false;
+		}
+		BlockState at = level.getBlockState(feet);
+		BlockState head = level.getBlockState(feet.above());
+		BlockState floor = level.getBlockState(feet.below());
+		return at.isAir() && head.isAir() && floor.blocksMotion();
 	}
 }
