@@ -288,7 +288,7 @@ Iron | Glass | Iron
 
 ### День 5 — присутствие Septic
 
-`dayIndex >= 5` (`/time set 96000`): рядом спавнится сущность **Septic** (присутствие, не босс). Рядом — шёпот `whisper_ambience.ogg`. **Взгляд на Septic** — тяжёлая виньетка, крупные глаза с хроматическим сдвигом, глитч/сужение FOV/тряска. **Голоса нет** (`septic_what.ogg` не играет). Вместо этого системный чат (один раз за взгляд, кулдаун 30 с): «[HP://SEPTIC] Чт0 ты так0е.» / «Ты вроде не из эт0го мiра.»
+`dayIndex >= 5` (`/time set 96000`): рядом спавнится сущность **Septic**. На голове — фотореалистичное **лицо без глаз** (чёрная жидкость). Взгляд на тело/голову (широкий конус, до 64 блоков) сразу закрывает экран тем же лицом. Голоса нет. Чат один раз за взгляд (30 с).
 
 ```
 /hostprotocol spawnseptic
@@ -379,12 +379,12 @@ src/main/resources/assets/hostprotocol/sounds/voice/
 
 ```
 src/main/java/ru/hostprotocol/     — сервер/общая логика, freeze, КПК, дни мира, очаг, Septic, Day3 kick, lab 5×5, скан-луч, данные, звуки, сеть, /hostprotocol
-src/client/java/ru/hostprotocol/   — клиент: IntroScreen, PdaScreen (чертежи 3×3 иконками + MK-II assistant), LabTableScreen 5×5, HUD скана, луч, виньетка Day-5
+src/client/java/ru/hostprotocol/   — клиент: IntroScreen, PdaScreen (чертежи 3×3 иконками + MK-II assistant), LabTableScreen 5×5, HUD скана, луч, лицо Day-5
 src/main/resources/assets/hostprotocol/lang/ — ru_ru + en_us
 src/main/resources/data/hostprotocol/recipes/scanner.json, lab_table.json, infection_serum.json, protective_*.json
 src/main/resources/data/hostprotocol/tags/blocks/scannable_ores.json
 src/main/resources/assets/hostprotocol/textures/block/infection_overlay.png
-src/main/resources/assets/hostprotocol/textures/gui/septic_vignette.png, septic_eyes.png
+src/main/resources/assets/hostprotocol/textures/gui/septic_face.png, septic_face_drip.png
 src/main/resources/assets/hostprotocol/sounds/voice/ — женский VO дня 2/3 + voice3 pack
 ```
 
