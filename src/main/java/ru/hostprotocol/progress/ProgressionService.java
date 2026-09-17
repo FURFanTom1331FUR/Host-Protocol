@@ -70,6 +70,7 @@ public final class ProgressionService {
 		if (result.isEmpty()) {
 			// still stamp even if stack moved
 		} else if (result.getItem() instanceof PdaMk2Item) {
+			PdaMk2Item.markActivated(result);
 			PdaMk2Item.markBlueprints(result);
 			result.getOrCreateTag().putBoolean(ru.hostprotocol.item.PdaItem.TAG_LAB_BLUEPRINTS, true);
 			result.getOrCreateTag().putBoolean(ru.hostprotocol.item.PdaItem.TAG_TRANSFERRED, true);

@@ -1,5 +1,8 @@
 package ru.hostprotocol.entity;
 
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
@@ -19,6 +22,7 @@ import ru.hostprotocol.sound.ModSounds;
  * Day-5 Septic presence. Watches. Does not run a full boss fight in this slice.
  */
 public class SepticEntity extends Monster {
+	private static final EntityDataAccessor<Boolean> HORROR_STALKER = SynchedEntityData.defineId(SepticEntity.class, EntityDataSerializers.BOOLEAN);
 	private int stalkerTicks;
 
 	public SepticEntity(EntityType<? extends Monster> type, Level level) {
@@ -27,15 +31,23 @@ public class SepticEntity extends Monster {
 		this.xpReward = 0;
 	}
 
+	@Override
+	protected void defineSynchedData() {
+		super.defineSynchedData();
+		this.entityData.define(HORROR_STALKER, false);
+	}
+
 	public void markHorrorStalker(int lifeTicks) {
 		this.stalkerTicks = Math.max(1, lifeTicks);
+		this.entityData.set(HORROR_STALKER, true);
 		this.setNoGravity(true);
 		this.setSilent(true);
-		this.setPersistenceRequired();
+		this.setInvulnerable(true);
+		this.setNoAi(true);
 	}
 
 	public boolean isHorrorStalker() {
-		return this.stalkerTicks > 0;
+		return this.entityData.get(HORROR_STALKER) || this.stalkerTicks > 0;
 	}
 
 	@Override
@@ -44,26 +56,39 @@ public class SepticEntity extends Monster {
 		if (this.stalkerTicks > 0) {
 			this.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
 			this.stalkerTicks--;
-			if (this.stalkerTicks <= 0) {
+			if (this.stalkerTicks <= 0 || this.level().players().isEmpty()) {
 				this.discard();
 			}
 		}
 	}
 
 	@Override
+	public boolean shouldBeSaved() {
+		return !isHorrorStalker() && super.shouldBeSaved();
+	}
+
+	@Override
+	public boolean removeWhenFarAway(double distanceToClosestPlayer) {
+		return isHorrorStalker();
+	}
+
+	@Override
+	public boolean isInvulnerableTo(DamageSource damageSource) {
+		return isHorrorStalker() || super.isInvulnerableTo(damageSource);
+	}
+
+	@Override
 	public void addAdditionalSaveData(net.minecraft.nbt.CompoundTag tag) {
 		super.addAdditionalSaveData(tag);
-		tag.putInt("HorrorStalker", this.stalkerTicks);
+		if (!isHorrorStalker()) {
+			tag.putInt("HorrorStalker", 0);
+		}
 	}
 
 	@Override
 	public void readAdditionalSaveData(net.minecraft.nbt.CompoundTag tag) {
 		super.readAdditionalSaveData(tag);
-		this.stalkerTicks = tag.getInt("HorrorStalker");
-		if (this.stalkerTicks > 0) {
-			this.setNoGravity(true);
-			this.setSilent(true);
-		}
+		this.stalkerTicks = 0;
 	}
 
 	public static AttributeSupplier.Builder createAttributes() {
@@ -81,11 +106,6 @@ public class SepticEntity extends Monster {
 		this.goalSelector.addGoal(1, new LookAtPlayerGoal(this, Player.class, 48.0F, 1.0F));
 		this.goalSelector.addGoal(2, new RandomLookAroundGoal(this));
 		this.goalSelector.addGoal(3, new WaterAvoidingRandomStrollGoal(this, 0.45));
-	}
-
-	@Override
-	public boolean removeWhenFarAway(double distanceToClosestPlayer) {
-		return false;
 	}
 
 	@Override

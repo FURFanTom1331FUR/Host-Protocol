@@ -57,6 +57,7 @@ import ru.hostprotocol.network.ModNetworking;
 public class HostProtocolClient implements ClientModInitializer {
 	private static String pendingSubjectId;
 	private static boolean pendingIntro;
+	private static net.minecraft.resources.ResourceLocation lastDimension;
 
 	@Override
 	public void onInitializeClient() {
@@ -231,6 +232,20 @@ public class HostProtocolClient implements ClientModInitializer {
 		});
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			if (client.player == null || client.level == null) {
+				SepticPresenceClientFx.resetLookState(client);
+				InfectionAtmosphereClient.cancel();
+				lastDimension = null;
+			} else {
+				net.minecraft.resources.ResourceLocation dim = client.level.dimension().location();
+				if (lastDimension != null && !lastDimension.equals(dim)) {
+					InfectionAtmosphereClient.cancel();
+					SepticPresenceClientFx.resetLookState(client);
+					HorrorClientFx.cancel(client);
+					ScanHumClient.stop();
+				}
+				lastDimension = dim;
+			}
 			MaterializeClientFx.clientTick(client);
 			PdaAppearClientFx.clientTick(client);
 			DayAnnounceClientFx.clientTick();
@@ -307,6 +322,7 @@ public class HostProtocolClient implements ClientModInitializer {
 			IntroClientState.setFreezeActive(false);
 			pendingIntro = false;
 			pendingSubjectId = null;
+			lastDimension = null;
 		});
 
 		ClientItemScreens.OPEN_PDA = stack -> Minecraft.getInstance().setScreen(new PdaScreen(stack));

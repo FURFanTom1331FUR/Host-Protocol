@@ -55,9 +55,16 @@ class HorrorEventLogicTest {
 		assertFalse(HorrorEventLogic.shouldLookScreamer(4, true, false, 0));
 		assertFalse(HorrorEventLogic.shouldLookScreamer(5, true, true, 0));
 		assertFalse(HorrorEventLogic.shouldLookScreamer(5, true, false, 1));
-		assertTrue(HorrorEventLogic.shouldSecondStare(5, true, 55, 0, false));
-		assertFalse(HorrorEventLogic.shouldSecondStare(5, true, 54, 0, false));
-		assertFalse(HorrorEventLogic.shouldSecondStare(5, true, 80, 0, true));
+		assertTrue(HorrorEventLogic.shouldSecondStare(5, true, 55, false, true));
+		assertFalse(HorrorEventLogic.shouldSecondStare(5, true, 54, false, true));
+		assertFalse(HorrorEventLogic.shouldSecondStare(5, true, 80, true, true));
+		assertFalse(HorrorEventLogic.shouldSecondStare(5, true, 80, false, false));
+	}
+
+	@Test
+	void hallwayStalkerIsNotWorldPresence() {
+		assertFalse(HorrorEventLogic.isWorldPresence(true));
+		assertTrue(HorrorEventLogic.isWorldPresence(false));
 	}
 
 	@Test

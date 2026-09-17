@@ -39,6 +39,10 @@ public final class InfectionAtmosphereClient {
 		}
 		Player player = minecraft.player;
 		Level level = minecraft.level;
+		if (level.dimension() != Level.OVERWORLD) {
+			fogBlend = 0.0F;
+			return;
+		}
 		boolean onInfected = standingOnInfected(player, level);
 		boolean night = ProtocolTime.isNight(level.getDayTime());
 		int day = ProtocolClientState.syncedDay();

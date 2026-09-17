@@ -39,11 +39,15 @@ class ProgressionLogicTest {
 	@Test
 	void lookingAtSepticUsesConeAndRange() {
 		assertTrue(SepticPresenceLogic.isLookingAt(0.95, 12.0));
-		assertTrue(SepticPresenceLogic.isLookingAt(0.55, 12.0));
+		assertTrue(SepticPresenceLogic.isLookingAt(0.72, 12.0));
+		assertFalse(SepticPresenceLogic.isLookingAt(0.55, 12.0));
 		assertFalse(SepticPresenceLogic.isLookingAt(0.2, 12.0));
 		assertFalse(SepticPresenceLogic.isLookingAt(0.99, 80.0));
 		assertFalse(SepticPresenceLogic.isLookingAt(1.0, 0.05));
 		assertTrue(SepticPresenceLogic.isLookingAt(0.99, 50.0));
+		assertTrue(SepticPresenceLogic.shouldLookOverlay(true, true, 0.9, 12.0));
+		assertFalse(SepticPresenceLogic.shouldLookOverlay(true, false, 0.9, 12.0));
+		assertFalse(SepticPresenceLogic.shouldLookOverlay(false, true, 0.9, 12.0));
 	}
 
 	@Test

@@ -51,6 +51,10 @@ public abstract class GameRendererMixin {
 		if (this.minecraft == null) {
 			return;
 		}
+		// HudRenderCallback already paints these while the HUD is visible. Draw here for F1 / pause / screens.
+		if (!this.minecraft.options.hideGui && this.minecraft.screen == null) {
+			return;
+		}
 		GuiGraphics graphics = new GuiGraphics(this.minecraft, this.renderBuffers.bufferSource());
 		InfectionActiveClientFx.render(graphics, this.minecraft);
 		SepticLinkClientFx.render(graphics, this.minecraft);
