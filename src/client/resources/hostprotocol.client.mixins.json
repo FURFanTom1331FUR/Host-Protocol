@@ -8,6 +8,7 @@
 		"ClientLevelMixin",
 		"TitleScreenMixin",
 		"GameRendererMixin",
+		"FogRendererMixin",
 		"LivingEntityRendererMixin"
 	],
 	"injectors": {

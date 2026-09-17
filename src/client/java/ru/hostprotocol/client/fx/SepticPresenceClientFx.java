@@ -40,21 +40,21 @@ public final class SepticPresenceClientFx {
 	}
 
 	public static boolean shouldOverlay() {
-		return lookBlend > 0.01F || impactTicks > 0 || hudTicks > 0;
-	}
-
-	public static float lookBlend() {
-		return lookBlend;
+		return lookBlend > 0.01F || impactTicks > 0 || hudTicks > 0 || HorrorClientFx.shouldOverlay();
 	}
 
 	public static float fovNarrow(float partialTicks) {
 		float impact = impactAmount(partialTicks);
-		return 14.0F * lookBlend + 10.0F * impact;
+		return 14.0F * lookBlend + 10.0F * impact + HorrorClientFx.fovPunch(partialTicks);
 	}
 
 	public static float shakeIntensity(float partialTicks) {
 		float impact = impactAmount(partialTicks);
-		return lookBlend * 0.55F + impact * 1.35F;
+		return lookBlend * 0.55F + impact * 1.35F + HorrorClientFx.shake(partialTicks);
+	}
+
+	public static float lookBlend() {
+		return lookBlend;
 	}
 
 	public static void cancel(Minecraft minecraft) {
@@ -65,6 +65,7 @@ public final class SepticPresenceClientFx {
 		hudTicks = 0;
 		nearest = null;
 		stopWhispers(minecraft);
+		HorrorClientFx.cancel(minecraft);
 	}
 
 	public static void clientTick(Minecraft minecraft) {
@@ -107,6 +108,8 @@ public final class SepticPresenceClientFx {
 			hudTicks = SepticPresenceLogic.LOOK_HUD_TICKS;
 			sendLookChat(minecraft);
 		}
+		int day = ProtocolClientState.syncedDay();
+		HorrorClientFx.onLookTick(minecraft, Math.max(day, day5 ? SepticPresenceLogic.FIRST_DAY : day), looking);
 		wasLooking = looking;
 	}
 
@@ -136,6 +139,9 @@ public final class SepticPresenceClientFx {
 			return;
 		}
 		float cover = Mth.clamp(lookBlend * 0.92F + impact * 0.25F, 0.0F, 1.0F);
+		if (impact > 0.55F && (ticks & 1) == 0) {
+			graphics.fill(0, 0, w, h, 0xFF000000);
+		}
 		graphics.fill(0, 0, w, h, GlitchRenderer.withAlpha(0x000000, (int) (255 * cover)));
 
 		int jx = GlitchRenderer.textJitterX(ticks) * 2;
@@ -144,9 +150,16 @@ public final class SepticPresenceClientFx {
 		int size = (int) (Math.max(w, h) * zoom);
 		int x = (w - size) / 2 + jx;
 		int y = (h - size) / 2 + jy;
-		ResourceLocation face = ((ticks / 5) & 1) == 0 ? FACE : FACE_DRIP;
+		ResourceLocation face = ((ticks / 6) & 1) == 0 ? FACE : FACE_DRIP;
+		graphics.setColor(1.0F, 0.12F, 0.16F, cover * 0.72F);
+		graphics.blit(face, x - 8, y, size, size, 0.0F, 0.0F, 256, 256, 256, 256);
+		graphics.setColor(0.18F, 0.55F, 1.0F, cover * 0.48F);
+		graphics.blit(face, x + 8, y + 3, size, size, 0.0F, 0.0F, 256, 256, 256, 256);
 		graphics.setColor(1.0F, 1.0F, 1.0F, cover);
 		graphics.blit(face, x, y, size, size, 0.0F, 0.0F, 256, 256, 256, 256);
+		float dripShift = ((ticks * 9) % 256);
+		graphics.setColor(1.0F, 1.0F, 1.0F, cover * 0.65F);
+		graphics.blit(FACE_DRIP, x, y + (int) (dripShift * 0.08F), size, size, 0.0F, dripShift, 256, 256, 256, 256);
 		graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
 
 		if (hudTicks > 0) {

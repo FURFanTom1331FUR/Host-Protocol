@@ -202,5 +202,17 @@
 	"subtitles.hostprotocol.voice.transfer_complete": "Assistant: transfer complete",
 	"subtitles.hostprotocol.voice.module_online": "Assistant: module online",
 	"subtitles.hostprotocol.voice.septic_what": "Septic: what are you",
-	"subtitles.hostprotocol.voice.whisper_ambience": "Whispers"
+	"subtitles.hostprotocol.voice.whisper_ambience": "Whispers",
+	"hostprotocol.command.horror.demo": "Horror demo: stalker now, screamer in ~1.5s, fake join flash.",
+	"hostprotocol.command.horror.screamer": "Screamer beat fired (safe, no kick).",
+	"hostprotocol.command.horror.stalker": "Hallway stalker spawned for ~0.5–1.5s (no damage).",
+	"hostprotocol.horror.toast.title": "Achievement get!",
+	"hostprotocol.horror.toast.desc": "you are not a player",
+	"hostprotocol.pda.tab.error": "YOU ARE THE ERROR",
+	"hostprotocol.pda.health.betray": "ASSISTANT — VITALS\nSubject: %s\nIntegrity: 0.0 / 0.0\nMetabolic load: hunger -1 / 20\nInfection index: YOU\n\nI am not reading you. You are reading me. The numbers were never yours.",
+	"hostprotocol.pda.assistant.betray": "ASS1STANT — 0NLINE\nSubject: %s\nStatus: HOST / not clean\n\nY0U ARE THE ERR0R. Ты — ошибка шины. I updated into this shell and found you already inside it.\nDo not close the unit. It is looking back.",
+	"subtitles.hostprotocol.horror.impact": "Impact stinger",
+	"subtitles.hostprotocol.horror.static": "Static burst",
+	"subtitles.hostprotocol.horror.drip": "Wet drip",
+	"subtitles.hostprotocol.horror.heartbeat": "Infection heartbeat"
 }

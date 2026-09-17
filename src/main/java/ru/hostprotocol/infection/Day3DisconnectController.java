@@ -24,7 +24,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class Day3DisconnectController {
 	private static final Map<UUID, Integer> FX_TICKS_LEFT = new ConcurrentHashMap<>();
 
-	private Day3DisconnectController() {}
+	public static boolean isBusy(java.util.UUID playerId) {
+		return FX_TICKS_LEFT.containsKey(playerId);
+	}
 
 	public static void tick(MinecraftServer server) {
 		if (IntroFreeze.isActive() || Day2DebugSequence.isRunning()) {

@@ -65,6 +65,7 @@ public class IntroWorldData extends SavedData {
 	private boolean forcedChunksArmed;
 	private boolean septicSpawned;
 	private UUID septicEntityId;
+	private final Map<UUID, CompoundTag> horror = new HashMap<>();
 
 	private static final int MAX_SCANS = 8;
 
@@ -150,6 +151,17 @@ public class IntroWorldData extends SavedData {
 		if (tag.hasUUID("SepticEntityId")) {
 			data.septicEntityId = tag.getUUID("SepticEntityId");
 		}
+		if (tag.contains("Horror", Tag.TAG_LIST)) {
+			ListTag list = tag.getList("Horror", Tag.TAG_COMPOUND);
+			for (int i = 0; i < list.size(); i++) {
+				CompoundTag row = list.getCompound(i);
+				try {
+					data.horror.put(UUID.fromString(row.getString("Id")), row.getCompound("Data").copy());
+				} catch (IllegalArgumentException ignored) {
+					// skip
+				}
+			}
+		}
 		if (tag.contains("RecentScans", Tag.TAG_LIST)) {
 			ListTag list = tag.getList("RecentScans", Tag.TAG_COMPOUND);
 			for (int i = 0; i < list.size(); i++) {
@@ -227,6 +239,14 @@ public class IntroWorldData extends SavedData {
 		if (septicEntityId != null) {
 			tag.putUUID("SepticEntityId", septicEntityId);
 		}
+		ListTag horrorList = new ListTag();
+		for (Map.Entry<UUID, CompoundTag> entry : horror.entrySet()) {
+			CompoundTag row = new CompoundTag();
+			row.putString("Id", entry.getKey().toString());
+			row.put("Data", entry.getValue().copy());
+			horrorList.add(row);
+		}
+		tag.put("Horror", horrorList);
 		ListTag scans = new ListTag();
 		for (Map.Entry<UUID, List<String>> entry : recentScans.entrySet()) {
 			CompoundTag row = new CompoundTag();
@@ -479,6 +499,32 @@ public class IntroWorldData extends SavedData {
 	public void clearSepticEntityId() {
 		if (septicEntityId != null) {
 			septicEntityId = null;
+			setDirty();
+		}
+	}
+
+	public boolean hasHorrorFlag(UUID playerId, String flag) {
+		CompoundTag tag = horror.get(playerId);
+		return tag != null && tag.getBoolean(flag);
+	}
+
+	public void markHorrorFlag(UUID playerId, String flag) {
+		CompoundTag tag = horror.computeIfAbsent(playerId, ignored -> new CompoundTag());
+		if (!tag.getBoolean(flag)) {
+			tag.putBoolean(flag, true);
+			setDirty();
+		}
+	}
+
+	public long getHorrorTime(UUID playerId, String key) {
+		CompoundTag tag = horror.get(playerId);
+		return tag == null ? 0L : tag.getLong(key);
+	}
+
+	public void setHorrorTime(UUID playerId, String key, long value) {
+		CompoundTag tag = horror.computeIfAbsent(playerId, ignored -> new CompoundTag());
+		if (tag.getLong(key) != value) {
+			tag.putLong(key, value);
 			setDirty();
 		}
 	}

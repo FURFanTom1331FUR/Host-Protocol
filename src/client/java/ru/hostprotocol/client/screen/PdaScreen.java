@@ -11,6 +11,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import ru.hostprotocol.client.ProtocolClientState;
 import ru.hostprotocol.client.fx.GlitchRenderer;
+import ru.hostprotocol.client.fx.HorrorClientFx;
 import ru.hostprotocol.item.ModItems;
 import ru.hostprotocol.item.PdaItem;
 import ru.hostprotocol.item.PdaMk2Item;
@@ -52,6 +53,7 @@ public class PdaScreen extends Screen {
 			{new ItemStack(ModItems.INFECTED_FLESH), new ItemStack(ModItems.INFECTED_FLESH), new ItemStack(ModItems.INFECTED_FLESH)}
 	};
 	private static final ResourceLocation CRAFTING_TEX = new ResourceLocation("textures/gui/container/crafting_table.png");
+	private static final ResourceLocation CORRUPT_BG = new ResourceLocation("hostprotocol", "textures/gui/pda_corrupted.png");
 
 	private static final String[] DAY1_KEYS = {
 			"hostprotocol.pda.page1",
@@ -143,6 +145,7 @@ public class PdaScreen extends Screen {
 		} else if (day2Unlocked) {
 			this.section = Section.DAY2;
 		}
+		HorrorClientFx.consumePdaOpen(ProtocolClientState.syncedDay());
 	}
 
 	private boolean showBlueprintTab() {
@@ -154,6 +157,15 @@ public class PdaScreen extends Screen {
 	}
 
 	@Override
+	public void tick() {
+		super.tick();
+	}
+
+	private boolean betraying() {
+		return HorrorClientFx.pdaBetrayTicks() > 0;
+	}
+
+	@Override
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		this.renderBackground(graphics);
 
@@ -162,10 +174,17 @@ public class PdaScreen extends Screen {
 		int x = (this.width - panelW) / 2;
 		int y = (this.height - panelH) / 2;
 
-		graphics.fill(x - 1, y - 1, x + panelW + 1, y + panelH + 1, accent());
+		boolean betray = betraying();
+		graphics.fill(x - 1, y - 1, x + panelW + 1, y + panelH + 1, betray ? 0xFF6A1020 : accent());
 		graphics.fill(x, y, x + panelW, y + panelH, PANEL_COLOR);
+		if (betray) {
+			graphics.setColor(1.0F, 1.0F, 1.0F, 0.42F);
+			graphics.blit(CORRUPT_BG, x, y, panelW, panelH, 0.0F, 0.0F, 256, 192, 256, 192);
+			graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+			GlitchRenderer.render(graphics, this.width, this.height, this.minecraft.gui.getGuiTicks(), 0.35F);
+		}
 		graphics.fill(x, y, x + panelW, y + 28, 0xFF140A1C);
-		graphics.fill(x, y + 28, x + panelW, y + 29, accent());
+		graphics.fill(x, y + 28, x + panelW, y + 29, betray ? 0xFFB01428 : accent());
 
 		Component title = mk2Activated
 				? Component.translatable("hostprotocol.pda.mk2.title")
@@ -178,10 +197,15 @@ public class PdaScreen extends Screen {
 				: mk2
 				? Component.translatable("hostprotocol.pda.mk2.device", subjectId)
 				: Component.translatable("hostprotocol.pda.device", subjectId);
-		graphics.drawString(this.font, device, x + 10, y + 16, mk2Activated ? ACCENT_MK2 : GlitchRenderer.PURPLE, false);
+		graphics.drawString(this.font, device, x + 10, y + 16, betray ? 0xFFB01428 : (mk2Activated ? ACCENT_MK2 : GlitchRenderer.PURPLE), false);
 
 		int tabY = y + 32;
 		renderTabs(graphics, x, tabY, panelW, mouseX, mouseY, false);
+		if (betray && (HorrorClientFx.pdaBetrayTicks() / 4) % 2 == 0) {
+			graphics.fill(x + 8, tabY, x + panelW - 8, tabY + TAB_H, 0xE0600818);
+			graphics.drawCenteredString(this.font, Component.translatable("hostprotocol.pda.tab.error"),
+					x + panelW / 2, tabY + 3, 0xFFFF6060);
+		}
 
 		int textX = x + 10;
 		int textY = tabY + tabRowCount() * (TAB_H + 2) + 8;
@@ -248,9 +272,13 @@ public class PdaScreen extends Screen {
 			case SYSTEM -> Component.translatable("hostprotocol.pda.tab.system");
 			case BLUEPRINT -> Component.translatable("hostprotocol.pda.tab.blueprint");
 			case MODULE -> Component.translatable("hostprotocol.pda.tab.module");
-			case HEALTH -> Component.translatable("hostprotocol.pda.tab.health");
+			case HEALTH -> betraying()
+					? Component.translatable("hostprotocol.pda.tab.error")
+					: Component.translatable("hostprotocol.pda.tab.health");
 			case SCANS -> Component.translatable("hostprotocol.pda.tab.scans");
-			case ASSISTANT -> Component.translatable("hostprotocol.pda.tab.assistant");
+			case ASSISTANT -> betraying()
+					? Component.translatable("hostprotocol.pda.tab.error")
+					: Component.translatable("hostprotocol.pda.tab.assistant");
 		};
 	}
 
@@ -424,6 +452,9 @@ public class PdaScreen extends Screen {
 			return Component.translatable(key, subjectId, log).getString();
 		}
 		if (section == Section.HEALTH) {
+			if (betraying()) {
+				return Component.translatable("hostprotocol.pda.health.betray", subjectId).getString();
+			}
 			Player player = Minecraft.getInstance().player;
 			float hp = player == null ? 0 : player.getHealth();
 			float max = player == null ? 20 : player.getMaxHealth();
@@ -450,6 +481,9 @@ public class PdaScreen extends Screen {
 				}
 			}
 			return Component.translatable(key, subjectId, body.toString().trim()).getString();
+		}
+		if (section == Section.ASSISTANT && betraying()) {
+			return Component.translatable("hostprotocol.pda.assistant.betray", subjectId).getString();
 		}
 		return Component.translatable(key, subjectId).getString();
 	}

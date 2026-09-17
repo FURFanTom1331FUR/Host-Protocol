@@ -68,7 +68,13 @@ public class SoundEngineMixin {
 	}
 
 	private static boolean shouldMute(SoundInstance instance) {
-		if (!IntroClientState.isFreezeActive() || instance == null) {
+		if (instance == null) {
+			return false;
+		}
+		if (ru.hostprotocol.client.fx.HorrorClientFx.isSilenced() && instance.getSource() != SoundSource.MASTER) {
+			return true;
+		}
+		if (!IntroClientState.isFreezeActive()) {
 			return false;
 		}
 		return instance.getSource() != SoundSource.MASTER;

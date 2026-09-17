@@ -202,5 +202,17 @@
 	"subtitles.hostprotocol.voice.transfer_complete": "Ассистент: перенос завершён",
 	"subtitles.hostprotocol.voice.module_online": "Ассистент: модуль онлайн",
 	"subtitles.hostprotocol.voice.septic_what": "Septic: что ты такое",
-	"subtitles.hostprotocol.voice.whisper_ambience": "Шёпот"
+	"subtitles.hostprotocol.voice.whisper_ambience": "Шёпот",
+	"hostprotocol.command.horror.demo": "Horror demo: сталкер сейчас, скример через ~1.5 с, фейковый join.",
+	"hostprotocol.command.horror.screamer": "Скример проигран (безопасно, без kick).",
+	"hostprotocol.command.horror.stalker": "Сталкер в коридоре на ~0.5–1.5 с (без урона).",
+	"hostprotocol.horror.toast.title": "Получено достижение!",
+	"hostprotocol.horror.toast.desc": "ты не игрок",
+	"hostprotocol.pda.tab.error": "ТЫ И ЕСТЬ ОШИБКА",
+	"hostprotocol.pda.health.betray": "АССИСТЕНТ — ЖИЗНЕННЫЕ ПОКАЗАТЕЛИ\nИспытуемый: %s\nЦелостность: 0.0 / 0.0\nМетаболическая нагрузка: голод -1 / 20\nИндекс заражения: ТЫ\n\nЯ вас не читаю. Вы читаете меня. Эти цифры никогда не были вашими.",
+	"hostprotocol.pda.assistant.betray": "АСС1СТЕНТ — 0НЛАЙН\nИспытуемый: %s\nСтатус: HOST / не чисто\n\nY0U ARE THE ERR0R. Ты — ошибка шины. Я перешла в оболочку и нашла тебя уже внутри.\nНе закрывай модуль. Он смотрит в ответ.",
+	"subtitles.hostprotocol.horror.impact": "Удар-стингер",
+	"subtitles.hostprotocol.horror.static": "Всплеск помех",
+	"subtitles.hostprotocol.horror.drip": "Влажная капель",
+	"subtitles.hostprotocol.horror.heartbeat": "Сердцебиение заражения"
 }

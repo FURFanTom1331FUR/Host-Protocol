@@ -30,6 +30,11 @@ public final class ModSounds {
 	public static final SoundEvent VOICE_MODULE_ONLINE = create("voice.module_online");
 	public static final SoundEvent VOICE_SEPTIC_WHAT = create("voice.septic_what");
 	public static final SoundEvent VOICE_WHISPER_AMBIENCE = create("voice.whisper_ambience");
+	public static final SoundEvent HORROR_IMPACT = create("horror.impact");
+	public static final SoundEvent HORROR_STATIC = create("horror.static_burst");
+	public static final SoundEvent HORROR_DRIP = create("horror.drip");
+	public static final SoundEvent HORROR_HEARTBEAT = create("horror.heartbeat");
+	public static final SoundEvent HORROR_WHISPER_BED = create("horror.whisper_bed");
 
 	private ModSounds() {}
 
@@ -62,6 +67,11 @@ public final class ModSounds {
 		register(VOICE_MODULE_ONLINE);
 		register(VOICE_SEPTIC_WHAT);
 		register(VOICE_WHISPER_AMBIENCE);
+		register(HORROR_IMPACT);
+		register(HORROR_STATIC);
+		register(HORROR_DRIP);
+		register(HORROR_HEARTBEAT);
+		register(HORROR_WHISPER_BED);
 	}
 
 	private static void register(SoundEvent event) {

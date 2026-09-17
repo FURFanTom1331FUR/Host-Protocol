@@ -156,6 +156,18 @@ public final class InfectedMobs {
 		}
 		int amplifier = Math.max(0, stage - 1);
 		entity.addEffect(new MobEffectInstance(ModEffects.INFECTION, 20 * 60 * 10, amplifier, true, false, true));
+		if (entity instanceof net.minecraft.world.entity.monster.Monster monster && !(entity instanceof SepticEntity)) {
+			net.minecraft.world.entity.player.Player nearest = monster.level().getNearestPlayer(monster, 24.0);
+			if (nearest != null && monster.getTarget() == null) {
+				monster.setTarget(nearest);
+			}
+			if (stage >= 2) {
+				monster.addEffect(new MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SPEED, 80, 1, true, false, false));
+				monster.addEffect(new MobEffectInstance(net.minecraft.world.effect.MobEffects.DAMAGE_BOOST, 80, 0, true, false, false));
+			} else {
+				monster.addEffect(new MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SPEED, 40, 0, true, false, false));
+			}
+		}
 		if (entity.level() instanceof ServerLevel serverLevel && serverLevel.getGameTime() % 40L == 0L) {
 			serverLevel.sendParticles(ParticleTypes.REVERSE_PORTAL,
 					entity.getX(), entity.getY() + entity.getBbHeight() * 0.5, entity.getZ(),

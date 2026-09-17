@@ -19,10 +19,51 @@ import ru.hostprotocol.sound.ModSounds;
  * Day-5 Septic presence. Watches. Does not run a full boss fight in this slice.
  */
 public class SepticEntity extends Monster {
+	private int stalkerTicks;
+
 	public SepticEntity(EntityType<? extends Monster> type, Level level) {
 		super(type, level);
 		this.setPersistenceRequired();
 		this.xpReward = 0;
+	}
+
+	public void markHorrorStalker(int lifeTicks) {
+		this.stalkerTicks = Math.max(1, lifeTicks);
+		this.setNoGravity(true);
+		this.setSilent(true);
+		this.setPersistenceRequired();
+	}
+
+	public boolean isHorrorStalker() {
+		return this.stalkerTicks > 0;
+	}
+
+	@Override
+	public void tick() {
+		super.tick();
+		if (this.stalkerTicks > 0) {
+			this.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
+			this.stalkerTicks--;
+			if (this.stalkerTicks <= 0) {
+				this.discard();
+			}
+		}
+	}
+
+	@Override
+	public void addAdditionalSaveData(net.minecraft.nbt.CompoundTag tag) {
+		super.addAdditionalSaveData(tag);
+		tag.putInt("HorrorStalker", this.stalkerTicks);
+	}
+
+	@Override
+	public void readAdditionalSaveData(net.minecraft.nbt.CompoundTag tag) {
+		super.readAdditionalSaveData(tag);
+		this.stalkerTicks = tag.getInt("HorrorStalker");
+		if (this.stalkerTicks > 0) {
+			this.setNoGravity(true);
+			this.setSilent(true);
+		}
 	}
 
 	public static AttributeSupplier.Builder createAttributes() {
@@ -49,7 +90,7 @@ public class SepticEntity extends Monster {
 
 	@Override
 	protected SoundEvent getAmbientSound() {
-		return ModSounds.VOICE_WHISPER_AMBIENCE;
+		return isHorrorStalker() ? null : ModSounds.VOICE_WHISPER_AMBIENCE;
 	}
 
 	@Override
@@ -69,6 +110,16 @@ public class SepticEntity extends Monster {
 
 	@Override
 	protected float getSoundVolume() {
-		return 0.85F;
+		return isHorrorStalker() ? 0.0F : 0.85F;
+	}
+
+	@Override
+	public boolean isPushable() {
+		return !isHorrorStalker() && super.isPushable();
+	}
+
+	@Override
+	protected float getStandingEyeHeight(net.minecraft.world.entity.Pose pose, net.minecraft.world.entity.EntityDimensions dimensions) {
+		return 2.12F;
 	}
 }
