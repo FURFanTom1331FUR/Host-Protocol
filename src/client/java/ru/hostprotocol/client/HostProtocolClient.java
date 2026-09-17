@@ -43,6 +43,7 @@ import ru.hostprotocol.client.screen.LabTableScreen;
 import ru.hostprotocol.client.screen.PdaScreen;
 import ru.hostprotocol.client.sound.ScanHumClient;
 import ru.hostprotocol.entity.ModEntityTypes;
+import ru.hostprotocol.infection.InfectionVisuals;
 import ru.hostprotocol.item.ClientItemScreens;
 import ru.hostprotocol.item.ModItems;
 import ru.hostprotocol.menu.ModMenus;
@@ -55,7 +56,7 @@ public class HostProtocolClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		BlockRenderLayerMap.INSTANCE.putBlocks(
-				RenderType.cutoutMipped(),
+				RenderType.cutout(),
 				ModBlocks.INFECTED_STONE,
 				ModBlocks.INFECTED_COBBLESTONE,
 				ModBlocks.INFECTED_DIRT,
@@ -64,14 +65,31 @@ public class HostProtocolClient implements ClientModInitializer {
 				ModBlocks.INFECTED_OAK_PLANKS
 		);
 		ColorProviderRegistry.BLOCK.register((state, world, pos, tintIndex) -> {
+			if (tintIndex == 1) {
+				return InfectionVisuals.BLOCK_TINT;
+			}
 			if (tintIndex != 0) {
 				return -1;
 			}
+			int grass;
 			if (world == null || pos == null) {
-				return GrassColor.getDefaultColor();
+				grass = GrassColor.getDefaultColor();
+			} else {
+				grass = BiomeColors.getAverageGrassColor(world, pos);
 			}
-			return BiomeColors.getAverageGrassColor(world, pos);
+			return InfectionVisuals.stainGrass(grass);
 		}, ModBlocks.INFECTED_GRASS_BLOCK);
+		ColorProviderRegistry.BLOCK.register((state, world, pos, tintIndex) -> {
+			if (tintIndex == 1) {
+				return InfectionVisuals.BLOCK_TINT;
+			}
+			return -1;
+		},
+				ModBlocks.INFECTED_STONE,
+				ModBlocks.INFECTED_COBBLESTONE,
+				ModBlocks.INFECTED_DIRT,
+				ModBlocks.INFECTED_OAK_LOG,
+				ModBlocks.INFECTED_OAK_PLANKS);
 
 		MenuScreens.register(ModMenus.LAB_TABLE, LabTableScreen::new);
 		EntityRendererRegistry.register(ModEntityTypes.SEPTIC, SepticRenderer::new);

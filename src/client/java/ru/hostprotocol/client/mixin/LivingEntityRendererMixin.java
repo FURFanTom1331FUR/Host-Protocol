@@ -22,8 +22,8 @@ public class LivingEntityRendererMixin {
 	)
 	private void hostprotocol$infectedTintHead(LivingEntity entity, float entityYaw, float partialTicks, PoseStack poseStack, MultiBufferSource buffer, int packedLight, CallbackInfo ci) {
 		if (InfectedMobs.isInfected(entity)) {
-			float shade = InfectedMobs.stageOf(entity) >= 2 ? 0.28F : 0.42F;
-			RenderSystem.setShaderColor(shade * 0.85F, shade * 0.35F, shade * 1.15F, 1.0F);
+			float shade = InfectedMobs.stageOf(entity) >= 2 ? 0.16F : 0.30F;
+			RenderSystem.setShaderColor(shade * 0.70F, shade * 0.18F, shade * 1.25F, 1.0F);
 		}
 	}
 
