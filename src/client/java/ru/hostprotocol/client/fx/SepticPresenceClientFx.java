@@ -19,11 +19,11 @@ import ru.hostprotocol.progress.SepticPresenceLogic;
 import ru.hostprotocol.sound.ModSounds;
 
 /**
- * Day-5 Septic: nearby whispers, look-at horror HUD (silent — chat instead of VO).
+ * Day-5 Septic: nearby whispers; look-at is silent and shows the eyeless face HUD.
  */
 public final class SepticPresenceClientFx {
-	private static final ResourceLocation VIGNETTE = new ResourceLocation(HostProtocolMod.MOD_ID, "textures/gui/septic_vignette.png");
-	private static final ResourceLocation EYES = new ResourceLocation(HostProtocolMod.MOD_ID, "textures/gui/septic_eyes.png");
+	private static final ResourceLocation FACE = new ResourceLocation(HostProtocolMod.MOD_ID, "textures/gui/septic_face.png");
+	private static final ResourceLocation FACE_DRIP = new ResourceLocation(HostProtocolMod.MOD_ID, "textures/gui/septic_face_drip.png");
 
 	private static int chatCooldown;
 	private static int impactTicks;
@@ -124,7 +124,7 @@ public final class SepticPresenceClientFx {
 		float impact = impactAmount(0.0F);
 		float glitch = 0.0F;
 		if (day5) {
-			glitch = 0.10F + 0.28F * near + 0.72F * lookBlend + 0.55F * impact;
+			glitch = 0.08F + 0.18F * near + 0.12F * lookBlend;
 		}
 		if (glitch > 0.02F) {
 			GlitchRenderer.render(graphics, w, h, ticks, Math.min(1.0F, glitch));
@@ -132,42 +132,29 @@ public final class SepticPresenceClientFx {
 		if (lookBlend <= 0.02F && impact <= 0.02F) {
 			return;
 		}
-		float veil = Mth.clamp(lookBlend * 0.72F + impact * 0.35F, 0.0F, 0.88F);
-		graphics.fill(0, 0, w, h, GlitchRenderer.withAlpha(0x050308, (int) (255 * veil)));
-		if (impact > 0.4F && (ticks & 1) == 0) {
-			graphics.fill(0, 0, w, h, GlitchRenderer.withAlpha(0x2A0018, (int) (90 * impact)));
-		}
+		float cover = Mth.clamp(lookBlend * 0.92F + impact * 0.25F, 0.0F, 1.0F);
+		graphics.fill(0, 0, w, h, GlitchRenderer.withAlpha(0x000000, (int) (255 * cover)));
 
-		float vigA = Mth.clamp(lookBlend * 1.35F + impact * 0.4F, 0.0F, 1.0F);
-		graphics.setColor(1.0F, 1.0F, 1.0F, vigA);
-		graphics.blit(VIGNETTE, 0, 0, w, h, 0.0F, 0.0F, 256, 256, 256, 256);
-		graphics.setColor(0.55F, 0.0F, 0.12F, vigA * 0.55F);
-		graphics.blit(VIGNETTE, -4, 2, w + 8, h + 4, 0.0F, 0.0F, 256, 256, 256, 256);
-		graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
-
-		int jx = GlitchRenderer.textJitterX(ticks);
-		int jy = GlitchRenderer.textJitterY(ticks);
-		int ew = 168;
-		int eh = 84;
-		int ex = (w - ew) / 2 + jx;
-		int ey = h / 2 - 72 + jy;
-		float eyeA = Mth.clamp(lookBlend * 1.15F + impact * 0.5F, 0.0F, 1.0F);
-		graphics.setColor(1.0F, 0.12F, 0.18F, eyeA * 0.85F);
-		graphics.blit(EYES, ex - 6, ey, ew, eh, 0.0F, 0.0F, 64, 32, 64, 32);
-		graphics.setColor(0.25F, 0.85F, 1.0F, eyeA * 0.55F);
-		graphics.blit(EYES, ex + 6, ey + 2, ew, eh, 0.0F, 0.0F, 64, 32, 64, 32);
-		graphics.setColor(1.0F, 1.0F, 1.0F, eyeA);
-		graphics.blit(EYES, ex, ey, ew, eh, 0.0F, 0.0F, 64, 32, 64, 32);
+		int jx = GlitchRenderer.textJitterX(ticks) * 2;
+		int jy = GlitchRenderer.textJitterY(ticks) * 2;
+		float zoom = 1.06F + 0.22F * lookBlend + 0.18F * impact;
+		int size = (int) (Math.max(w, h) * zoom);
+		int x = (w - size) / 2 + jx;
+		int y = (h - size) / 2 + jy;
+		ResourceLocation face = ((ticks / 5) & 1) == 0 ? FACE : FACE_DRIP;
+		graphics.setColor(1.0F, 1.0F, 1.0F, cover);
+		graphics.blit(face, x, y, size, size, 0.0F, 0.0F, 256, 256, 256, 256);
 		graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
 
 		if (hudTicks > 0) {
 			int a = (int) (255 * Mth.clamp(hudTicks / 18.0F, 0.0F, 1.0F));
+			int textY = h - 36;
 			graphics.drawCenteredString(minecraft.font,
 					Component.translatable("hostprotocol.septic.chat.look").withStyle(ChatFormatting.DARK_PURPLE),
-					w / 2 + jx / 2, h / 2 + 36, GlitchRenderer.withAlpha(0xE8E0E0, a));
+					w / 2 + jx / 2, textY, GlitchRenderer.withAlpha(0xE8E0E0, a));
 			graphics.drawCenteredString(minecraft.font,
 					Component.translatable("hostprotocol.septic.chat.look.sub"),
-					w / 2, h / 2 + 48, GlitchRenderer.withAlpha(GlitchRenderer.PURPLE_RGB, a));
+					w / 2, textY + 12, GlitchRenderer.withAlpha(0xC8C8C8, a));
 		}
 	}
 

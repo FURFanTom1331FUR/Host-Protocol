@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""High-contrast infection overlay + heavier Septic HUD (no Pillow)."""
-import math
+"""High-contrast infection overlay (no Pillow). Septic HUD faces are generated images, not this script."""
 import struct
 import zlib
 from pathlib import Path
@@ -80,67 +79,9 @@ def infection_overlay() -> list[list[tuple[int, int, int, int]]]:
 	return px
 
 
-def septic_eyes() -> list[list[tuple[int, int, int, int]]]:
-	w, h = 64, 32
-	px = fill(w, h, (0, 0, 0, 0))
-	socket = (12, 0, 8, 240)
-	rim = (90, 8, 18, 255)
-	sclera = (210, 30, 36, 255)
-	iris = (255, 70, 80, 255)
-	pupil = (255, 236, 236, 255)
-	glitch = (180, 40, 255, 200)
-
-	def eye(cx: int, cy: int, rx: int, ry: int) -> None:
-		for y in range(h):
-			for x in range(w):
-				dx = (x - cx) / rx
-				dy = (y - cy) / ry
-				d = dx * dx + dy * dy
-				if d <= 1.35:
-					put(px, x, y, socket)
-				if d <= 1.0:
-					put(px, x, y, rim)
-				if d <= 0.72:
-					put(px, x, y, sclera)
-				if d <= 0.28:
-					put(px, x, y, iris)
-				if d <= 0.10:
-					put(px, x, y, pupil)
-
-	eye(18, 16, 11, 8)
-	eye(46, 16, 11, 8)
-	# Glitch fragments / extra pupil sparks.
-	for x, y in ((8, 10), (9, 11), (31, 8), (32, 14), (55, 9), (22, 24), (41, 25)):
-		put(px, x, y, glitch)
-		put(px, x + 1, y, pupil)
-	return px
-
-
-def septic_vignette() -> list[list[tuple[int, int, int, int]]]:
-	w = h = 256
-	cx = cy = 127.5
-	px = []
-	for y in range(h):
-		row = []
-		for x in range(w):
-			dx = (x - cx) / (w * 0.50)
-			dy = (y - cy) / (h * 0.50)
-			r = math.sqrt(dx * dx + dy * dy)
-			# Heavy: darkness starts close to the center, corners fully black.
-			t = max(0.0, min(1.0, (r - 0.12) / 0.95))
-			t = t * t * (3.0 - 2.0 * t)
-			a = int(255 * t)
-			row.append((8, 0, 12, a))
-		px.append(row)
-	return px
-
-
 def main():
 	block = ROOT / "block"
-	gui = ROOT / "gui"
 	write_png(block / "infection_overlay.png", infection_overlay())
-	write_png(gui / "septic_eyes.png", septic_eyes())
-	write_png(gui / "septic_vignette.png", septic_vignette())
 
 
 if __name__ == "__main__":
