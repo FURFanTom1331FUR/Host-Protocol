@@ -2,7 +2,6 @@ package ru.hostprotocol.client.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -18,11 +17,11 @@ import ru.hostprotocol.entity.SepticEntity;
 /**
  * Photorealistic eyeless face glued to Septic's head so looking at the mob is not the old Steve skin.
  */
-public class SepticFaceLayer extends RenderLayer<SepticEntity, HumanoidModel<SepticEntity>> {
+public class SepticFaceLayer extends RenderLayer<SepticEntity, SepticModel> {
 	private static final ResourceLocation FACE = new ResourceLocation(HostProtocolMod.MOD_ID, "textures/gui/septic_face.png");
 	private static final ResourceLocation FACE_DRIP = new ResourceLocation(HostProtocolMod.MOD_ID, "textures/gui/septic_face_drip.png");
 
-	public SepticFaceLayer(RenderLayerParent<SepticEntity, HumanoidModel<SepticEntity>> parent) {
+	public SepticFaceLayer(RenderLayerParent<SepticEntity, SepticModel> parent) {
 		super(parent);
 	}
 

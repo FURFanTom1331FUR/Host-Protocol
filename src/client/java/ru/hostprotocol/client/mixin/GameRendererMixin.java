@@ -44,7 +44,8 @@ public abstract class GameRendererMixin {
 		if (!SepticLinkClientFx.isActive() && !CoordsUnlockClientFx.isActive() && !SystemErrorClientFx.isActive()
 				&& !InfectionActiveClientFx.isActive() && !Day3DisconnectClientFx.isActive()
 				&& !BlueprintUpdateClientFx.isActive() && !TransferCompleteClientFx.isActive()
-				&& !ModuleOnlineClientFx.isActive() && !SepticPresenceClientFx.shouldOverlay()) {
+				&& !ModuleOnlineClientFx.isActive() && !SepticPresenceClientFx.shouldOverlay()
+				&& !ru.hostprotocol.client.fx.HorrorClientFx.shouldOverlay()) {
 			return;
 		}
 		if (this.minecraft == null) {
@@ -60,6 +61,7 @@ public abstract class GameRendererMixin {
 		TransferCompleteClientFx.render(graphics, this.minecraft);
 		ModuleOnlineClientFx.render(graphics, this.minecraft);
 		SepticPresenceClientFx.render(graphics, this.minecraft);
+		ru.hostprotocol.client.fx.HorrorClientFx.render(graphics, this.minecraft);
 		graphics.flush();
 	}
 

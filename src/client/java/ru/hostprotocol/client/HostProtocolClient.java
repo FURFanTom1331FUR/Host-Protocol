@@ -8,6 +8,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.ArmorRenderer;
 import net.fabricmc.fabric.api.client.rendering.v1.ColorProviderRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
@@ -26,6 +27,8 @@ import ru.hostprotocol.client.fx.BlueprintUpdateClientFx;
 import ru.hostprotocol.client.fx.CoordsUnlockClientFx;
 import ru.hostprotocol.client.fx.Day3DisconnectClientFx;
 import ru.hostprotocol.client.fx.DayAnnounceClientFx;
+import ru.hostprotocol.client.fx.HorrorClientFx;
+import ru.hostprotocol.client.fx.InfectionAtmosphereClient;
 import ru.hostprotocol.client.fx.InfectionActiveClientFx;
 import ru.hostprotocol.client.fx.MaterializeClientFx;
 import ru.hostprotocol.client.fx.ModuleOnlineClientFx;
@@ -37,12 +40,14 @@ import ru.hostprotocol.client.fx.SystemErrorClientFx;
 import ru.hostprotocol.client.fx.TransferCompleteClientFx;
 import ru.hostprotocol.client.hud.DayHud;
 import ru.hostprotocol.client.hud.ScanHud;
+import ru.hostprotocol.client.render.SepticModel;
 import ru.hostprotocol.client.render.SepticRenderer;
 import ru.hostprotocol.client.screen.IntroScreen;
 import ru.hostprotocol.client.screen.LabTableScreen;
 import ru.hostprotocol.client.screen.PdaScreen;
 import ru.hostprotocol.client.sound.ScanHumClient;
 import ru.hostprotocol.entity.ModEntityTypes;
+import ru.hostprotocol.horror.HorrorKind;
 import ru.hostprotocol.infection.InfectionVisuals;
 import ru.hostprotocol.item.ClientItemScreens;
 import ru.hostprotocol.item.ModItems;
@@ -92,6 +97,7 @@ public class HostProtocolClient implements ClientModInitializer {
 				ModBlocks.INFECTED_OAK_PLANKS);
 
 		MenuScreens.register(ModMenus.LAB_TABLE, LabTableScreen::new);
+		EntityModelLayerRegistry.registerModelLayer(SepticModel.LAYER, SepticModel::createBodyLayer);
 		EntityRendererRegistry.register(ModEntityTypes.SEPTIC, SepticRenderer::new);
 		ResourceLocation suit1 = new ResourceLocation(HostProtocolMod.MOD_ID, "textures/models/armor/protective_suit_layer_1.png");
 		ResourceLocation suit2 = new ResourceLocation(HostProtocolMod.MOD_ID, "textures/models/armor/protective_suit_layer_2.png");
@@ -218,6 +224,12 @@ public class HostProtocolClient implements ClientModInitializer {
 			client.execute(() -> ModuleOnlineClientFx.play(client));
 		});
 
+		ClientPlayNetworking.registerGlobalReceiver(ModNetworking.HORROR_EVENT_S2C, (client, handler, buf, responseSender) -> {
+			String kind = buf.readUtf();
+			int extra = buf.readVarInt();
+			client.execute(() -> HorrorClientFx.handlePacket(client, HorrorKind.fromPacket(kind), extra));
+		});
+
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			MaterializeClientFx.clientTick(client);
 			PdaAppearClientFx.clientTick(client);
@@ -233,6 +245,8 @@ public class HostProtocolClient implements ClientModInitializer {
 			TransferCompleteClientFx.clientTick();
 			ModuleOnlineClientFx.clientTick(client);
 			SepticPresenceClientFx.clientTick(client);
+			HorrorClientFx.clientTick(client);
+			InfectionAtmosphereClient.clientTick(client);
 			if (!pendingIntro || pendingSubjectId == null) {
 				return;
 			}
@@ -268,6 +282,7 @@ public class HostProtocolClient implements ClientModInitializer {
 			TransferCompleteClientFx.render(graphics, client);
 			ModuleOnlineClientFx.render(graphics, client);
 			SepticPresenceClientFx.render(graphics, client);
+			HorrorClientFx.render(graphics, client);
 		});
 
 		WorldRenderEvents.AFTER_TRANSLUCENT.register(ScanBeamRenderer::render);
@@ -286,6 +301,8 @@ public class HostProtocolClient implements ClientModInitializer {
 			TransferCompleteClientFx.cancel();
 			ModuleOnlineClientFx.cancel();
 			SepticPresenceClientFx.cancel(client);
+			HorrorClientFx.cancel(client);
+			InfectionAtmosphereClient.cancel();
 			ProtocolClientState.reset();
 			IntroClientState.setFreezeActive(false);
 			pendingIntro = false;

@@ -38,7 +38,7 @@ Linux / macOS:
 Готовый jar:
 
 ```
-build/libs/hostprotocol-0.1.0-mvp.jar
+build/libs/hostprotocol-0.1.2.jar
 ```
 
 (имя может чуть отличаться — смотрите `build/libs/`).
@@ -294,7 +294,26 @@ Iron | Glass | Iron
 /hostprotocol spawnseptic
 ```
 
+```
+/hostprotocol horror demo
+/hostprotocol horror screamer
+/hostprotocol horror stalker
+```
+
+`horror demo` — сталкер сейчас + скример через ~1.5 с (без kick). QA-команды не ставят one-shot флаги мира.
+
 `/hostprotocol status` показывает infection, focus, coords, septic, protocol breached, lab blueprints, transfer, MK-II boot.
+
+### 0.1.2 — horror toolkit (не спам)
+
+Ранние дни остаются тихими. Скримеры редкие и привязаны к дню:
+
+- **День 3+** (после kick дня 3, либо с дня 4): фейковый join/leave `Spryzen`, ложный toast, короткий invert/static. Kick дня 3 по-прежнему единственный жёсткий meta того дня.
+- **День 4+:** Septic мелькает у края зрения / за спиной 0.5–1.5 с, без урона; дверь/пещера pitch-warped.
+- **День 5+:** взгляд на Septic — heart-stop тишина, удар, eyeless face slam + редкий второй beat если смотреть дальше; ночью у очага — полный скример (один раз).
+- **День 6+:** MK-II на секунду врёт (HP 0.0, вкладка «ТЫ И ЕСТЬ ОШИБКА» / «YOU ARE THE ERROR»).
+
+Текстуры: `textures/entity/septic.png`, `textures/gui/septic_face.png`, `septic_face_drip.png`, `screamer_flash.png`, `septic_drip.png`, `septic_vignette.png`, `pda_corrupted.png`. Стингеры без речи: `sounds/horror/*.ogg`.
 
 Вне скоупа: полный ИИ босса Septic, концовка Энда, машина лечения мира.
 
@@ -373,6 +392,13 @@ src/main/resources/assets/hostprotocol/sounds/voice/
   module_online.ogg
   septic_what.ogg           (не используется на взгляд; строка ушла в чат)
   whisper_ambience.ogg      (присутствие рядом, не триггер взгляда)
+
+src/main/resources/assets/hostprotocol/sounds/horror/
+  impact.ogg                (удар-стингер, не речь)
+  static_burst.ogg
+  drip.ogg
+  heartbeat.ogg
+  whisper_bed.ogg
 ```
 
 ## Структура
@@ -384,7 +410,9 @@ src/main/resources/assets/hostprotocol/lang/ — ru_ru + en_us
 src/main/resources/data/hostprotocol/recipes/scanner.json, lab_table.json, infection_serum.json, protective_*.json
 src/main/resources/data/hostprotocol/tags/blocks/scannable_ores.json
 src/main/resources/assets/hostprotocol/textures/block/infection_overlay.png
-src/main/resources/assets/hostprotocol/textures/gui/septic_face.png, septic_face_drip.png
+src/main/resources/assets/hostprotocol/textures/gui/septic_face.png, septic_face_drip.png, screamer_flash.png, septic_drip.png, septic_vignette.png, pda_corrupted.png
+src/main/resources/assets/hostprotocol/textures/entity/septic.png
+src/main/resources/assets/hostprotocol/sounds/horror/ — impact/static/drip/heartbeat (без речи)
 src/main/resources/assets/hostprotocol/sounds/voice/ — женский VO дня 2/3 + voice3 pack
 ```
 

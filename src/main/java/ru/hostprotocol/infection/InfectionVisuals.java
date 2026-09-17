@@ -31,7 +31,7 @@ public final class InfectionVisuals {
 	}
 
 	public static void animate(Level level, BlockPos pos, RandomSource random) {
-		if (random.nextInt(4) != 0) {
+		if (random.nextInt(2) != 0) {
 			return;
 		}
 		double x = pos.getX() + 0.12 + random.nextDouble() * 0.76;
@@ -41,8 +41,17 @@ public final class InfectionVisuals {
 		if (random.nextBoolean()) {
 			level.addParticle(ParticleTypes.REVERSE_PORTAL, x, y + 0.15, z, 0.0, 0.04, 0.0);
 		}
-		if (random.nextInt(5) == 0) {
+		if (random.nextInt(3) == 0) {
 			level.addParticle(ParticleTypes.SQUID_INK, x, y + 0.2, z, 0.0, 0.01, 0.0);
+		}
+		if (random.nextInt(4) == 0) {
+			level.addParticle(ParticleTypes.DRIPPING_OBSIDIAN_TEAR, x, y + 0.95, z, 0.0, 0.0, 0.0);
+		}
+		if (random.nextInt(40) == 0) {
+			level.playLocalSound(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
+					ru.hostprotocol.sound.ModSounds.HORROR_DRIP,
+					net.minecraft.sounds.SoundSource.AMBIENT,
+					0.22F, 0.65F + random.nextFloat() * 0.35F, false);
 		}
 	}
 

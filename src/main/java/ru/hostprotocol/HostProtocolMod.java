@@ -76,6 +76,7 @@ public class HostProtocolMod implements ModInitializer {
 			InfectedMobs.tick(server);
 			SepticLinkController.tick(server);
 			SepticPresenceController.tick(server);
+			ru.hostprotocol.horror.HorrorEventScheduler.tick(server);
 			Day3DisconnectController.tick(server);
 			MetaBreachController.tryArm(server, IntroWorldData.get(server.overworld()));
 		});
@@ -114,7 +115,7 @@ public class HostProtocolMod implements ModInitializer {
 			});
 		});
 
-		LOGGER.info("Host Protocol initialized (scanner beam, lab transfer, MK-II assistant, Day-5 Septic)");
+		LOGGER.info("Host Protocol initialized (scanner beam, lab transfer, MK-II, Day-5 Septic, 0.1.2 horror)");
 	}
 
 	private static void registerInfectionGuards() {
@@ -234,6 +235,34 @@ public class HostProtocolMod implements ModInitializer {
 									ctx.getSource().sendSuccess(() -> Component.translatable("hostprotocol.command.spawnseptic"), true);
 									return 1;
 								}))
+						.then(Commands.literal("horror")
+								.executes(ctx -> {
+									ServerPlayer player = ctx.getSource().getPlayerOrException();
+									int result = ru.hostprotocol.horror.HorrorEventScheduler.fireDemo(player);
+									ctx.getSource().sendSuccess(() -> Component.translatable("hostprotocol.command.horror.demo"), true);
+									return result;
+								})
+								.then(Commands.literal("demo")
+										.executes(ctx -> {
+											ServerPlayer player = ctx.getSource().getPlayerOrException();
+											int result = ru.hostprotocol.horror.HorrorEventScheduler.fireDemo(player);
+											ctx.getSource().sendSuccess(() -> Component.translatable("hostprotocol.command.horror.demo"), true);
+											return result;
+										}))
+								.then(Commands.literal("screamer")
+										.executes(ctx -> {
+											ServerPlayer player = ctx.getSource().getPlayerOrException();
+											int result = ru.hostprotocol.horror.HorrorEventScheduler.fireScreamer(player, false);
+											ctx.getSource().sendSuccess(() -> Component.translatable("hostprotocol.command.horror.screamer"), true);
+											return result;
+										}))
+								.then(Commands.literal("stalker")
+										.executes(ctx -> {
+											ServerPlayer player = ctx.getSource().getPlayerOrException();
+											int result = ru.hostprotocol.horror.HorrorEventScheduler.fireStalker(player);
+											ctx.getSource().sendSuccess(() -> Component.translatable("hostprotocol.command.horror.stalker"), true);
+											return result;
+										})))
 						.then(Commands.literal("status")
 								.executes(ctx -> {
 									ServerPlayer player = ctx.getSource().getPlayerOrException();

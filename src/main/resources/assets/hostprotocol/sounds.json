@@ -204,5 +204,46 @@
 				"stream": true
 			}
 		]
+	},
+	"horror.impact": {
+		"subtitle": "subtitles.hostprotocol.horror.impact",
+		"sounds": [
+			{
+				"name": "hostprotocol:horror/impact"
+			}
+		]
+	},
+	"horror.static_burst": {
+		"subtitle": "subtitles.hostprotocol.horror.static",
+		"sounds": [
+			{
+				"name": "hostprotocol:horror/static_burst"
+			}
+		]
+	},
+	"horror.drip": {
+		"subtitle": "subtitles.hostprotocol.horror.drip",
+		"sounds": [
+			{
+				"name": "hostprotocol:horror/drip"
+			}
+		]
+	},
+	"horror.heartbeat": {
+		"subtitle": "subtitles.hostprotocol.horror.heartbeat",
+		"sounds": [
+			{
+				"name": "hostprotocol:horror/heartbeat"
+			}
+		]
+	},
+	"horror.whisper_bed": {
+		"subtitle": "subtitles.hostprotocol.voice.whisper_ambience",
+		"sounds": [
+			{
+				"name": "hostprotocol:horror/whisper_bed",
+				"stream": true
+			}
+		]
 	}
 }

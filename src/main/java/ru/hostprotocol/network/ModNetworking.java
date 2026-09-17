@@ -25,6 +25,7 @@ public final class ModNetworking {
 	public static final ResourceLocation BLUEPRINT_UPDATE_S2C = HostProtocolMod.id("blueprint_update");
 	public static final ResourceLocation TRANSFER_COMPLETE_S2C = HostProtocolMod.id("transfer_complete");
 	public static final ResourceLocation MODULE_ONLINE_S2C = HostProtocolMod.id("module_online");
+	public static final ResourceLocation HORROR_EVENT_S2C = HostProtocolMod.id("horror_event");
 
 	private ModNetworking() {}
 
@@ -126,6 +127,17 @@ public final class ModNetworking {
 
 	public static void sendModuleOnline(ServerPlayer player) {
 		ServerPlayNetworking.send(player, MODULE_ONLINE_S2C, PacketByteBufs.create());
+	}
+
+	public static void sendHorrorEvent(ServerPlayer player, ru.hostprotocol.horror.HorrorKind kind) {
+		sendHorrorEvent(player, kind, 0);
+	}
+
+	public static void sendHorrorEvent(ServerPlayer player, ru.hostprotocol.horror.HorrorKind kind, int extra) {
+		FriendlyByteBuf buf = PacketByteBufs.create();
+		buf.writeUtf(kind.name());
+		buf.writeVarInt(extra);
+		ServerPlayNetworking.send(player, HORROR_EVENT_S2C, buf);
 	}
 
 	public static FriendlyByteBuf createIntroCompletePacket() {
