@@ -32,6 +32,8 @@ public class PdaItem extends Item {
 	public static final String TAG_SYSTEM_ERROR = "SystemErrorLog";
 	public static final String TAG_BLUEPRINTS = "BlueprintsUnlocked";
 	public static final String TAG_LAB_BLUEPRINTS = "LabBlueprintsUnlocked";
+	public static final String TAG_TRANSFERRED = "Transferred";
+	public static final String TAG_BASE_BLUEPRINTS = "BaseBlueprints";
 	public static final String TAG_SENSOR_LOG = "SensorLog";
 	public static final int SENSOR_LOG_LIMIT = 8;
 
@@ -117,6 +119,24 @@ public class PdaItem extends Item {
 
 	public static void markLabBlueprints(ItemStack stack) {
 		stack.getOrCreateTag().putBoolean(TAG_LAB_BLUEPRINTS, true);
+	}
+
+	public static boolean hasTransferred(ItemStack stack) {
+		CompoundTag tag = stack.getTag();
+		return tag != null && tag.getBoolean(TAG_TRANSFERRED);
+	}
+
+	public static void markTransferred(ItemStack stack) {
+		stack.getOrCreateTag().putBoolean(TAG_TRANSFERRED, true);
+	}
+
+	public static boolean hasBaseBlueprints(ItemStack stack) {
+		CompoundTag tag = stack.getTag();
+		return tag != null && tag.getBoolean(TAG_BASE_BLUEPRINTS);
+	}
+
+	public static void markBaseBlueprints(ItemStack stack) {
+		stack.getOrCreateTag().putBoolean(TAG_BASE_BLUEPRINTS, true);
 	}
 
 	public static boolean isPdaDevice(ItemStack stack) {

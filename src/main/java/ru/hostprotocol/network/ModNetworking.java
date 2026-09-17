@@ -22,6 +22,9 @@ public final class ModNetworking {
 	public static final ResourceLocation SYSTEM_ERROR_S2C = HostProtocolMod.id("system_error");
 	public static final ResourceLocation INFECTION_ACTIVE_S2C = HostProtocolMod.id("infection_active");
 	public static final ResourceLocation DAY3_DISCONNECT_S2C = HostProtocolMod.id("day3_disconnect");
+	public static final ResourceLocation BLUEPRINT_UPDATE_S2C = HostProtocolMod.id("blueprint_update");
+	public static final ResourceLocation TRANSFER_COMPLETE_S2C = HostProtocolMod.id("transfer_complete");
+	public static final ResourceLocation MODULE_ONLINE_S2C = HostProtocolMod.id("module_online");
 
 	private ModNetworking() {}
 
@@ -58,6 +61,16 @@ public final class ModNetworking {
 		buf.writeBoolean(data.hasSystemErrorLog(player.getUUID()));
 		buf.writeBoolean(data.hasBlueprints(player.getUUID()));
 		buf.writeBoolean(data.hasLabBlueprints(player.getUUID()));
+		buf.writeBoolean(data.hasTransferred(player.getUUID()));
+		buf.writeBoolean(data.hasBaseBlueprints(player.getUUID()));
+		buf.writeBoolean(data.hasMk2Booted(player.getUUID()));
+		buf.writeVarInt(ru.hostprotocol.infection.InfectedMobs.playerStage(player, data));
+		buf.writeBoolean(data.isSepticSpawned() && ProtocolTime.dayIndex(dayTime) >= 5);
+		java.util.List<String> scans = data.getRecentScans(player.getUUID());
+		buf.writeVarInt(scans.size());
+		for (String scan : scans) {
+			buf.writeUtf(scan);
+		}
 		ServerPlayNetworking.send(player, PROTOCOL_STATE_S2C, buf);
 	}
 
@@ -101,6 +114,18 @@ public final class ModNetworking {
 
 	public static void sendDay3Disconnect(ServerPlayer player) {
 		ServerPlayNetworking.send(player, DAY3_DISCONNECT_S2C, PacketByteBufs.create());
+	}
+
+	public static void sendBlueprintUpdate(ServerPlayer player) {
+		ServerPlayNetworking.send(player, BLUEPRINT_UPDATE_S2C, PacketByteBufs.create());
+	}
+
+	public static void sendTransferComplete(ServerPlayer player) {
+		ServerPlayNetworking.send(player, TRANSFER_COMPLETE_S2C, PacketByteBufs.create());
+	}
+
+	public static void sendModuleOnline(ServerPlayer player) {
+		ServerPlayNetworking.send(player, MODULE_ONLINE_S2C, PacketByteBufs.create());
 	}
 
 	public static FriendlyByteBuf createIntroCompletePacket() {

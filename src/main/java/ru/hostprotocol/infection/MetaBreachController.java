@@ -8,6 +8,7 @@ import ru.hostprotocol.HostProtocolMod;
 import ru.hostprotocol.data.IntroWorldData;
 import ru.hostprotocol.item.PdaService;
 import ru.hostprotocol.network.ModNetworking;
+import ru.hostprotocol.progress.ProgressionService;
 
 /**
  * When coordinates are locked <em>and</em> the Septic handshake has run, the protocol is
@@ -46,6 +47,7 @@ public final class MetaBreachController {
 			data.markBlueprints(player.getUUID());
 			PdaService.stampSystemError(player);
 			PdaService.stampBlueprints(player);
+			ProgressionService.grantKnownRecipes(player, data);
 			ModNetworking.sendSystemError(player);
 			HostProtocolMod.LOGGER.info("Breach acknowledgement (siren + PDA fault) for {}",
 					player.getGameProfile().getName());

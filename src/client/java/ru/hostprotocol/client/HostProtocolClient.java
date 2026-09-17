@@ -6,7 +6,9 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.client.rendering.v1.ArmorRenderer;
 import net.fabricmc.fabric.api.client.rendering.v1.ColorProviderRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.Minecraft;
@@ -14,27 +16,35 @@ import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.renderer.BiomeColors;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.GrassColor;
 import ru.hostprotocol.HostProtocolMod;
 import ru.hostprotocol.block.ModBlocks;
 import ru.hostprotocol.client.breach.BreachClientFlags;
 import ru.hostprotocol.client.breach.BreachWatchdog;
+import ru.hostprotocol.client.fx.BlueprintUpdateClientFx;
 import ru.hostprotocol.client.fx.CoordsUnlockClientFx;
 import ru.hostprotocol.client.fx.Day3DisconnectClientFx;
 import ru.hostprotocol.client.fx.DayAnnounceClientFx;
 import ru.hostprotocol.client.fx.InfectionActiveClientFx;
 import ru.hostprotocol.client.fx.MaterializeClientFx;
+import ru.hostprotocol.client.fx.ModuleOnlineClientFx;
 import ru.hostprotocol.client.fx.PdaAppearClientFx;
 import ru.hostprotocol.client.fx.ScanBeamRenderer;
 import ru.hostprotocol.client.fx.SepticLinkClientFx;
+import ru.hostprotocol.client.fx.SepticPresenceClientFx;
 import ru.hostprotocol.client.fx.SystemErrorClientFx;
+import ru.hostprotocol.client.fx.TransferCompleteClientFx;
 import ru.hostprotocol.client.hud.DayHud;
 import ru.hostprotocol.client.hud.ScanHud;
+import ru.hostprotocol.client.render.SepticRenderer;
 import ru.hostprotocol.client.screen.IntroScreen;
 import ru.hostprotocol.client.screen.LabTableScreen;
 import ru.hostprotocol.client.screen.PdaScreen;
 import ru.hostprotocol.client.sound.ScanHumClient;
+import ru.hostprotocol.entity.ModEntityTypes;
 import ru.hostprotocol.item.ClientItemScreens;
+import ru.hostprotocol.item.ModItems;
 import ru.hostprotocol.menu.ModMenus;
 import ru.hostprotocol.network.ModNetworking;
 
@@ -62,6 +72,15 @@ public class HostProtocolClient implements ClientModInitializer {
 			}
 			return BiomeColors.getAverageGrassColor(world, pos);
 		}, ModBlocks.INFECTED_GRASS_BLOCK);
+
+		MenuScreens.register(ModMenus.LAB_TABLE, LabTableScreen::new);
+		EntityRendererRegistry.register(ModEntityTypes.SEPTIC, SepticRenderer::new);
+		ResourceLocation suit1 = new ResourceLocation(HostProtocolMod.MOD_ID, "textures/models/armor/protective_suit_layer_1.png");
+		ResourceLocation suit2 = new ResourceLocation(HostProtocolMod.MOD_ID, "textures/models/armor/protective_suit_layer_2.png");
+		ArmorRenderer.register((matrices, vertexConsumers, stack, entity, slot, light, contextModel) -> {
+			ResourceLocation tex = slot == net.minecraft.world.entity.EquipmentSlot.LEGS ? suit2 : suit1;
+			ArmorRenderer.renderPart(matrices, vertexConsumers, light, stack, contextModel, tex);
+		}, ModItems.PROTECTIVE_HELMET, ModItems.PROTECTIVE_CHESTPLATE, ModItems.PROTECTIVE_LEGGINGS, ModItems.PROTECTIVE_BOOTS);
 
 		ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
 			BreachClientFlags.load(client);
@@ -104,11 +123,22 @@ public class HostProtocolClient implements ClientModInitializer {
 			boolean systemError = buf.readBoolean();
 			boolean blueprints = buf.readBoolean();
 			boolean labBlueprints = buf.readBoolean();
+			boolean transferred = buf.readBoolean();
+			boolean baseBp = buf.readBoolean();
+			boolean mk2Booted = buf.readBoolean();
+			int infectionStage = buf.readVarInt();
+			boolean septicPresent = buf.readBoolean();
+			int scanCount = buf.readVarInt();
+			java.util.List<String> scans = new java.util.ArrayList<>();
+			for (int i = 0; i < scanCount; i++) {
+				scans.add(buf.readUtf());
+			}
 			client.execute(() -> {
 				ProtocolClientState.apply(
 						subjectId, introCompleted, day2, day2Coords, day3, pdaGiven, day,
 						infection, septicLink, hasCoords, focus, garbled,
-						breached, systemError, blueprints, labBlueprints);
+						breached, systemError, blueprints, labBlueprints, transferred, baseBp,
+						mk2Booted, infectionStage, septicPresent, scans);
 				if (breached) {
 					BreachWatchdog.arm(client);
 				}
@@ -158,6 +188,18 @@ public class HostProtocolClient implements ClientModInitializer {
 			client.execute(() -> Day3DisconnectClientFx.play(client));
 		});
 
+		ClientPlayNetworking.registerGlobalReceiver(ModNetworking.BLUEPRINT_UPDATE_S2C, (client, handler, buf, responseSender) -> {
+			client.execute(() -> BlueprintUpdateClientFx.play(client));
+		});
+
+		ClientPlayNetworking.registerGlobalReceiver(ModNetworking.TRANSFER_COMPLETE_S2C, (client, handler, buf, responseSender) -> {
+			client.execute(() -> TransferCompleteClientFx.play(client));
+		});
+
+		ClientPlayNetworking.registerGlobalReceiver(ModNetworking.MODULE_ONLINE_S2C, (client, handler, buf, responseSender) -> {
+			client.execute(() -> ModuleOnlineClientFx.play(client));
+		});
+
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			MaterializeClientFx.clientTick(client);
 			PdaAppearClientFx.clientTick(client);
@@ -169,6 +211,10 @@ public class HostProtocolClient implements ClientModInitializer {
 			Day3DisconnectClientFx.clientTick(client);
 			ScanBeamRenderer.clientTick(client);
 			ScanHumClient.clientTick(client);
+			BlueprintUpdateClientFx.clientTick();
+			TransferCompleteClientFx.clientTick();
+			ModuleOnlineClientFx.clientTick(client);
+			SepticPresenceClientFx.clientTick(client);
 			if (!pendingIntro || pendingSubjectId == null) {
 				return;
 			}
@@ -200,6 +246,10 @@ public class HostProtocolClient implements ClientModInitializer {
 			SystemErrorClientFx.render(graphics, client);
 			Day3DisconnectClientFx.render(graphics, client);
 			ScanHud.render(graphics, client, tickDelta);
+			BlueprintUpdateClientFx.render(graphics, client);
+			TransferCompleteClientFx.render(graphics, client);
+			ModuleOnlineClientFx.render(graphics, client);
+			SepticPresenceClientFx.render(graphics, client);
 		});
 
 		WorldRenderEvents.AFTER_TRANSLUCENT.register(ScanBeamRenderer::render);
@@ -214,6 +264,10 @@ public class HostProtocolClient implements ClientModInitializer {
 			SystemErrorClientFx.cancel(client);
 			Day3DisconnectClientFx.cancel(client);
 			ScanHumClient.stop();
+			BlueprintUpdateClientFx.cancel();
+			TransferCompleteClientFx.cancel();
+			ModuleOnlineClientFx.cancel();
+			SepticPresenceClientFx.cancel(client);
 			ProtocolClientState.reset();
 			IntroClientState.setFreezeActive(false);
 			pendingIntro = false;
@@ -221,7 +275,6 @@ public class HostProtocolClient implements ClientModInitializer {
 		});
 
 		ClientItemScreens.OPEN_PDA = stack -> Minecraft.getInstance().setScreen(new PdaScreen(stack));
-		MenuScreens.register(ModMenus.LAB_TABLE, LabTableScreen::new);
 
 		HostProtocolMod.LOGGER.info("Host Protocol client ready");
 	}

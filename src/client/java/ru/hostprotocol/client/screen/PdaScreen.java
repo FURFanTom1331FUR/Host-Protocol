@@ -1,26 +1,29 @@
 package ru.hostprotocol.client.screen;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import ru.hostprotocol.client.ProtocolClientState;
 import ru.hostprotocol.client.fx.GlitchRenderer;
 import ru.hostprotocol.item.ModItems;
 import ru.hostprotocol.item.PdaItem;
+import ru.hostprotocol.item.PdaMk2Item;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Host Protocol PDA: Day logs, system fault, scanner / lab / MK-II blueprints, MK-II module note.
+ * Host Protocol PDA: day logs, scanner/lab/MK-II/serum blueprints, and the MK-II assistant pages.
  */
 public class PdaScreen extends Screen {
 	private enum Section {
-		DAY1, DAY2, DAY3, SYSTEM, BLUEPRINT, MODULE
+		DAY1, DAY2, DAY3, SYSTEM, BLUEPRINT, MODULE, HEALTH, SCANS, ASSISTANT
 	}
 
 	private static final ItemStack[][] SCANNER_GRID = {
@@ -37,6 +40,16 @@ public class PdaScreen extends Screen {
 			{new ItemStack(Items.IRON_INGOT), new ItemStack(Items.GLASS), new ItemStack(Items.IRON_INGOT)},
 			{new ItemStack(Items.IRON_INGOT), new ItemStack(Items.REDSTONE), new ItemStack(Items.IRON_INGOT)},
 			{new ItemStack(Items.IRON_INGOT), new ItemStack(Items.GLASS), new ItemStack(Items.IRON_INGOT)}
+	};
+	private static final ItemStack[][] SERUM_GRID = {
+			{ItemStack.EMPTY, new ItemStack(ModItems.INFECTED_FLESH), ItemStack.EMPTY},
+			{new ItemStack(ModItems.INFECTED_FLESH), new ItemStack(Items.GLASS_BOTTLE), new ItemStack(ModItems.INFECTED_FLESH)},
+			{ItemStack.EMPTY, new ItemStack(Items.GOLD_NUGGET), ItemStack.EMPTY}
+	};
+	private static final ItemStack[][] SUIT_GRID = {
+			{new ItemStack(ModItems.INFECTED_FLESH), ItemStack.EMPTY, new ItemStack(ModItems.INFECTED_FLESH)},
+			{new ItemStack(ModItems.INFECTED_FLESH), new ItemStack(Items.IRON_INGOT), new ItemStack(ModItems.INFECTED_FLESH)},
+			{new ItemStack(ModItems.INFECTED_FLESH), new ItemStack(ModItems.INFECTED_FLESH), new ItemStack(ModItems.INFECTED_FLESH)}
 	};
 	private static final ResourceLocation CRAFTING_TEX = new ResourceLocation("textures/gui/container/crafting_table.png");
 
@@ -64,9 +77,20 @@ public class PdaScreen extends Screen {
 			"hostprotocol.pda.mk2.page1",
 			"hostprotocol.pda.mk2.page2"
 	};
+	private static final String[] HEALTH_KEYS = {
+			"hostprotocol.pda.health.page1"
+	};
+	private static final String[] SCANS_KEYS = {
+			"hostprotocol.pda.scans.page1"
+	};
+	private static final String[] ASSISTANT_KEYS = {
+			"hostprotocol.pda.assistant.page1",
+			"hostprotocol.pda.assistant.page2"
+	};
 
 	private static final int PANEL_COLOR = 0xE80A0A0E;
 	private static final int BORDER = GlitchRenderer.PURPLE;
+	private static final int ACCENT_MK2 = 0xFF80E8E0;
 	private static final int HEADER = 0xFFEDEDED;
 	private static final int MUTED = 0xFF8A8A96;
 	private static final int BODY = 0xFFC8C8C8;
@@ -78,7 +102,9 @@ public class PdaScreen extends Screen {
 	private final boolean systemUnlocked;
 	private final boolean blueprintUnlocked;
 	private final boolean labBlueprintUnlocked;
+	private final boolean baseUnlocked;
 	private final boolean mk2;
+	private final boolean mk2Activated;
 	private final boolean coordsLocked;
 	private final String coordsText;
 	private final String garbledId;
@@ -90,11 +116,14 @@ public class PdaScreen extends Screen {
 		super(Component.translatable("hostprotocol.pda.title"));
 		this.subjectId = PdaItem.getSubjectId(stack);
 		this.mk2 = stack.is(ModItems.PDA_MK2);
+		this.mk2Activated = mk2 && PdaMk2Item.isActivated(stack);
 		this.day2Unlocked = PdaItem.hasDay2Log(stack) || ProtocolClientState.hasDay2Log();
 		this.day3Unlocked = PdaItem.hasDay3Log(stack) || ProtocolClientState.hasDay3Log();
 		this.systemUnlocked = PdaItem.hasSystemErrorLog(stack) || ProtocolClientState.hasSystemErrorLog();
 		this.blueprintUnlocked = PdaItem.hasBlueprints(stack) || ProtocolClientState.hasBlueprints();
 		this.labBlueprintUnlocked = PdaItem.hasLabBlueprints(stack) || ProtocolClientState.hasLabBlueprints();
+		this.baseUnlocked = PdaItem.hasBaseBlueprints(stack) || ProtocolClientState.hasBaseBlueprints()
+				|| PdaItem.hasTransferred(stack) || ProtocolClientState.hasTransferred();
 		this.coordsLocked = PdaItem.hasDay2Coords(stack) || ProtocolClientState.hasDay2Coords();
 		this.sensorLogs = PdaItem.getSensorLogs(stack);
 		if (PdaItem.hasDay2Coords(stack)) {
@@ -105,7 +134,9 @@ public class PdaScreen extends Screen {
 			this.coordsText = Component.translatable("hostprotocol.pda.coords.pending").getString();
 		}
 		this.garbledId = ProtocolClientState.garbledSubjectId();
-		if (mk2) {
+		if (mk2Activated) {
+			this.section = Section.ASSISTANT;
+		} else if (mk2) {
 			this.section = Section.MODULE;
 		} else if (systemUnlocked) {
 			this.section = Section.SYSTEM;
@@ -115,7 +146,11 @@ public class PdaScreen extends Screen {
 	}
 
 	private boolean showBlueprintTab() {
-		return blueprintUnlocked || labBlueprintUnlocked;
+		return blueprintUnlocked || labBlueprintUnlocked || baseUnlocked;
+	}
+
+	private int accent() {
+		return mk2Activated ? ACCENT_MK2 : BORDER;
 	}
 
 	@Override
@@ -127,41 +162,29 @@ public class PdaScreen extends Screen {
 		int x = (this.width - panelW) / 2;
 		int y = (this.height - panelH) / 2;
 
-		graphics.fill(x - 1, y - 1, x + panelW + 1, y + panelH + 1, BORDER);
+		graphics.fill(x - 1, y - 1, x + panelW + 1, y + panelH + 1, accent());
 		graphics.fill(x, y, x + panelW, y + panelH, PANEL_COLOR);
 		graphics.fill(x, y, x + panelW, y + 28, 0xFF140A1C);
-		graphics.fill(x, y + 28, x + panelW, y + 29, BORDER);
+		graphics.fill(x, y + 28, x + panelW, y + 29, accent());
 
-		Component title = mk2
+		Component title = mk2Activated
+				? Component.translatable("hostprotocol.pda.mk2.title")
+				: mk2
 				? Component.translatable("hostprotocol.pda.mk2.title")
 				: Component.translatable("hostprotocol.pda.title");
 		graphics.drawString(this.font, title, x + 10, y + 6, HEADER, false);
-		Component device = mk2
+		Component device = mk2Activated
+				? Component.translatable("hostprotocol.pda.mk2.device", subjectId)
+				: mk2
 				? Component.translatable("hostprotocol.pda.mk2.device", subjectId)
 				: Component.translatable("hostprotocol.pda.device", subjectId);
-		graphics.drawString(this.font, device, x + 10, y + 16, GlitchRenderer.PURPLE, false);
+		graphics.drawString(this.font, device, x + 10, y + 16, mk2Activated ? ACCENT_MK2 : GlitchRenderer.PURPLE, false);
 
 		int tabY = y + 32;
-		int tabX = x + 8;
-		tabX = renderTab(graphics, tabX, tabY, Component.translatable("hostprotocol.pda.tab.day1"), section == Section.DAY1, mouseX, mouseY);
-		if (day2Unlocked) {
-			tabX = renderTab(graphics, tabX + 4, tabY, Component.translatable("hostprotocol.pda.tab.day2"), section == Section.DAY2, mouseX, mouseY);
-		}
-		if (day3Unlocked) {
-			tabX = renderTab(graphics, tabX + 4, tabY, Component.translatable("hostprotocol.pda.tab.day3"), section == Section.DAY3, mouseX, mouseY);
-		}
-		if (systemUnlocked) {
-			tabX = renderTab(graphics, tabX + 4, tabY, Component.translatable("hostprotocol.pda.tab.system"), section == Section.SYSTEM, mouseX, mouseY);
-		}
-		if (showBlueprintTab()) {
-			tabX = renderTab(graphics, tabX + 4, tabY, Component.translatable("hostprotocol.pda.tab.blueprint"), section == Section.BLUEPRINT, mouseX, mouseY);
-		}
-		if (mk2) {
-			renderTab(graphics, tabX + 4, tabY, Component.translatable("hostprotocol.pda.tab.module"), section == Section.MODULE, mouseX, mouseY);
-		}
+		renderTabs(graphics, x, tabY, panelW, mouseX, mouseY, false);
 
 		int textX = x + 10;
-		int textY = tabY + TAB_H + 8;
+		int textY = tabY + tabRowCount() * (TAB_H + 2) + 8;
 		int textW = panelW - 20;
 
 		if (section == Section.BLUEPRINT) {
@@ -188,6 +211,72 @@ public class PdaScreen extends Screen {
 		super.render(graphics, mouseX, mouseY, partialTick);
 	}
 
+	private int tabRowCount() {
+		return visibleTabs().size() > 5 ? 2 : 1;
+	}
+
+	private List<Section> visibleTabs() {
+		List<Section> tabs = new ArrayList<>();
+		tabs.add(Section.DAY1);
+		if (day2Unlocked) {
+			tabs.add(Section.DAY2);
+		}
+		if (day3Unlocked) {
+			tabs.add(Section.DAY3);
+		}
+		if (systemUnlocked) {
+			tabs.add(Section.SYSTEM);
+		}
+		if (showBlueprintTab()) {
+			tabs.add(Section.BLUEPRINT);
+		}
+		if (mk2Activated) {
+			tabs.add(Section.HEALTH);
+			tabs.add(Section.SCANS);
+			tabs.add(Section.ASSISTANT);
+		} else if (mk2) {
+			tabs.add(Section.MODULE);
+		}
+		return tabs;
+	}
+
+	private Component tabLabel(Section s) {
+		return switch (s) {
+			case DAY1 -> Component.translatable("hostprotocol.pda.tab.day1");
+			case DAY2 -> Component.translatable("hostprotocol.pda.tab.day2");
+			case DAY3 -> Component.translatable("hostprotocol.pda.tab.day3");
+			case SYSTEM -> Component.translatable("hostprotocol.pda.tab.system");
+			case BLUEPRINT -> Component.translatable("hostprotocol.pda.tab.blueprint");
+			case MODULE -> Component.translatable("hostprotocol.pda.tab.module");
+			case HEALTH -> Component.translatable("hostprotocol.pda.tab.health");
+			case SCANS -> Component.translatable("hostprotocol.pda.tab.scans");
+			case ASSISTANT -> Component.translatable("hostprotocol.pda.tab.assistant");
+		};
+	}
+
+	private int renderTabs(GuiGraphics graphics, int x, int tabY, int panelW, int mouseX, int mouseY, boolean hitOnly) {
+		int tabX = x + 8;
+		int row = 0;
+		int maxX = x + panelW - 8;
+		for (Section s : visibleTabs()) {
+			Component label = tabLabel(s);
+			int tw = tabWidth(label);
+			if (tabX + tw > maxX) {
+				row++;
+				tabX = x + 8;
+			}
+			int ty = tabY + row * (TAB_H + 2);
+			if (!hitOnly) {
+				renderTab(graphics, tabX, ty, label, section == s, mouseX, mouseY);
+			} else if (inside(mouseX, mouseY, tabX, ty, tw, TAB_H)) {
+				selectSection(s);
+				return -1;
+			}
+			tabX += tw + 4;
+		}
+		return 0;
+	}
+
 	private void renderBlueprintCraft(GuiGraphics graphics, int panelX, int panelW, int textY) {
 		List<BlueprintPage> pages = blueprintPages();
 		if (pages.isEmpty()) {
@@ -210,7 +299,10 @@ public class PdaScreen extends Screen {
 			for (int col = 0; col < 3; col++) {
 				int sx = gx + col * slot;
 				int sy = gy + row * slot;
-				graphics.renderItem(current.grid[row][col], sx + 1, sy + 1);
+				ItemStack cell = current.grid[row][col];
+				if (!cell.isEmpty()) {
+					graphics.renderItem(cell, sx + 1, sy + 1);
+				}
 			}
 		}
 
@@ -244,6 +336,18 @@ public class PdaScreen extends Screen {
 					new ItemStack(ModItems.PDA_MK2),
 					"item.hostprotocol.pda_mk2"));
 		}
+		if (baseUnlocked) {
+			pages.add(new BlueprintPage(
+					"hostprotocol.pda.blueprint.caption.serum",
+					SERUM_GRID,
+					new ItemStack(ModItems.INFECTION_SERUM),
+					"item.hostprotocol.infection_serum"));
+			pages.add(new BlueprintPage(
+					"hostprotocol.pda.blueprint.caption.suit",
+					SUIT_GRID,
+					new ItemStack(ModItems.PROTECTIVE_CHESTPLATE),
+					"item.hostprotocol.protective_chestplate"));
+		}
 		return pages;
 	}
 
@@ -251,10 +355,10 @@ public class PdaScreen extends Screen {
 		int tw = tabWidth(label);
 		boolean hover = mouseX >= tx && mouseX < tx + tw && mouseY >= ty && mouseY < ty + TAB_H;
 		int bg = selected ? 0xFF2A1238 : hover ? 0xFF1A0E24 : 0xFF100A14;
-		int fg = selected ? GlitchRenderer.PURPLE : MUTED;
+		int fg = selected ? (mk2Activated ? ACCENT_MK2 : GlitchRenderer.PURPLE) : MUTED;
 		graphics.fill(tx, ty, tx + tw, ty + TAB_H, bg);
 		if (selected) {
-			graphics.fill(tx, ty + TAB_H - 1, tx + tw, ty + TAB_H, BORDER);
+			graphics.fill(tx, ty + TAB_H - 1, tx + tw, ty + TAB_H, accent());
 		}
 		graphics.drawString(this.font, label, tx + 5, ty + 3, fg, false);
 		return tx + tw;
@@ -279,6 +383,9 @@ public class PdaScreen extends Screen {
 			case SYSTEM -> SYSTEM_KEYS;
 			case BLUEPRINT -> new String[] {"hostprotocol.pda.blueprint.page1"};
 			case MODULE -> MODULE_KEYS;
+			case HEALTH -> HEALTH_KEYS;
+			case SCANS -> SCANS_KEYS;
+			case ASSISTANT -> ASSISTANT_KEYS;
 		};
 	}
 
@@ -316,8 +423,33 @@ public class PdaScreen extends Screen {
 					: String.join("\n", sensorLogs);
 			return Component.translatable(key, subjectId, log).getString();
 		}
-		if (section == Section.SYSTEM || section == Section.BLUEPRINT || section == Section.MODULE) {
-			return Component.translatable(key, subjectId).getString();
+		if (section == Section.HEALTH) {
+			Player player = Minecraft.getInstance().player;
+			float hp = player == null ? 0 : player.getHealth();
+			float max = player == null ? 20 : player.getMaxHealth();
+			int hunger = player == null ? 0 : player.getFoodData().getFoodLevel();
+			int stage = ProtocolClientState.infectionStage();
+			String stageLabel = Component.translatable("hostprotocol.infection.stage." + Math.min(2, stage)).getString();
+			return Component.translatable(key, subjectId,
+					String.format("%.1f / %.1f", hp, max),
+					Integer.toString(hunger),
+					stageLabel).getString();
+		}
+		if (section == Section.SCANS) {
+			List<String> scans = ProtocolClientState.recentScans();
+			if (scans.isEmpty() && !sensorLogs.isEmpty()) {
+				scans = sensorLogs;
+			}
+			StringBuilder body = new StringBuilder();
+			if (scans.isEmpty()) {
+				body.append(Component.translatable("hostprotocol.pda.scans.empty").getString());
+			} else {
+				int n = 1;
+				for (String scan : scans) {
+					body.append(n++).append(". ").append(scan).append('\n');
+				}
+			}
+			return Component.translatable(key, subjectId, body.toString().trim()).getString();
 		}
 		return Component.translatable(key, subjectId).getString();
 	}
@@ -329,52 +461,11 @@ public class PdaScreen extends Screen {
 		int x = (this.width - panelW) / 2;
 		int y = (this.height - panelH) / 2;
 		int tabY = y + 32;
-		int tabX = x + 8;
-		tabX = hitTab(mouseX, mouseY, tabX, tabY, Component.translatable("hostprotocol.pda.tab.day1"), Section.DAY1);
-		if (tabX < 0) {
+		if (renderTabs(null, x, tabY, panelW, (int) mouseX, (int) mouseY, true) < 0) {
 			return true;
-		}
-		if (day2Unlocked) {
-			tabX = hitTab(mouseX, mouseY, tabX + 4, tabY, Component.translatable("hostprotocol.pda.tab.day2"), Section.DAY2);
-			if (tabX < 0) {
-				return true;
-			}
-		}
-		if (day3Unlocked) {
-			tabX = hitTab(mouseX, mouseY, tabX + 4, tabY, Component.translatable("hostprotocol.pda.tab.day3"), Section.DAY3);
-			if (tabX < 0) {
-				return true;
-			}
-		}
-		if (systemUnlocked) {
-			tabX = hitTab(mouseX, mouseY, tabX + 4, tabY, Component.translatable("hostprotocol.pda.tab.system"), Section.SYSTEM);
-			if (tabX < 0) {
-				return true;
-			}
-		}
-		if (showBlueprintTab()) {
-			tabX = hitTab(mouseX, mouseY, tabX + 4, tabY, Component.translatable("hostprotocol.pda.tab.blueprint"), Section.BLUEPRINT);
-			if (tabX < 0) {
-				return true;
-			}
-		}
-		if (mk2) {
-			tabX = hitTab(mouseX, mouseY, tabX + 4, tabY, Component.translatable("hostprotocol.pda.tab.module"), Section.MODULE);
-			if (tabX < 0) {
-				return true;
-			}
 		}
 		advance();
 		return true;
-	}
-
-	private int hitTab(double mouseX, double mouseY, int tabX, int tabY, Component label, Section target) {
-		int tw = tabWidth(label);
-		if (inside(mouseX, mouseY, tabX, tabY, tw, TAB_H)) {
-			selectSection(target);
-			return -1;
-		}
-		return tabX + tw;
 	}
 
 	private static boolean inside(double mx, double my, int x, int y, int w, int h) {
@@ -390,11 +481,11 @@ public class PdaScreen extends Screen {
 
 	@Override
 	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-		if (keyCode == 262 || keyCode == 32 || keyCode == 257) { // right, space, enter
+		if (keyCode == 262 || keyCode == 32 || keyCode == 257) {
 			advance();
 			return true;
 		}
-		if (keyCode == 263) { // left
+		if (keyCode == 263) {
 			if (page > 0) {
 				page--;
 			} else {
@@ -406,14 +497,14 @@ public class PdaScreen extends Screen {
 			}
 			return true;
 		}
-		if (keyCode == 265 || keyCode == 87) { // up / W
+		if (keyCode == 265 || keyCode == 87) {
 			Section prev = previousSection();
 			if (prev != null) {
 				selectSection(prev);
 			}
 			return true;
 		}
-		if (keyCode == 264 || keyCode == 83) { // down / S
+		if (keyCode == 264 || keyCode == 83) {
 			Section next = nextSection();
 			if (next != null) {
 				selectSection(next);
@@ -424,25 +515,21 @@ public class PdaScreen extends Screen {
 	}
 
 	private Section previousSection() {
-		return switch (section) {
-			case MODULE -> showBlueprintTab() ? Section.BLUEPRINT : (systemUnlocked ? Section.SYSTEM : (day3Unlocked ? Section.DAY3 : (day2Unlocked ? Section.DAY2 : Section.DAY1)));
-			case BLUEPRINT -> systemUnlocked ? Section.SYSTEM : (day3Unlocked ? Section.DAY3 : (day2Unlocked ? Section.DAY2 : Section.DAY1));
-			case SYSTEM -> day3Unlocked ? Section.DAY3 : (day2Unlocked ? Section.DAY2 : Section.DAY1);
-			case DAY3 -> day2Unlocked ? Section.DAY2 : Section.DAY1;
-			case DAY2 -> Section.DAY1;
-			case DAY1 -> null;
-		};
+		List<Section> tabs = visibleTabs();
+		int i = tabs.indexOf(section);
+		if (i > 0) {
+			return tabs.get(i - 1);
+		}
+		return null;
 	}
 
 	private Section nextSection() {
-		return switch (section) {
-			case DAY1 -> day2Unlocked ? Section.DAY2 : (day3Unlocked ? Section.DAY3 : (systemUnlocked ? Section.SYSTEM : (showBlueprintTab() ? Section.BLUEPRINT : (mk2 ? Section.MODULE : null))));
-			case DAY2 -> day3Unlocked ? Section.DAY3 : (systemUnlocked ? Section.SYSTEM : (showBlueprintTab() ? Section.BLUEPRINT : (mk2 ? Section.MODULE : null)));
-			case DAY3 -> systemUnlocked ? Section.SYSTEM : (showBlueprintTab() ? Section.BLUEPRINT : (mk2 ? Section.MODULE : null));
-			case SYSTEM -> showBlueprintTab() ? Section.BLUEPRINT : (mk2 ? Section.MODULE : null);
-			case BLUEPRINT -> mk2 ? Section.MODULE : null;
-			case MODULE -> null;
-		};
+		List<Section> tabs = visibleTabs();
+		int i = tabs.indexOf(section);
+		if (i >= 0 && i + 1 < tabs.size()) {
+			return tabs.get(i + 1);
+		}
+		return null;
 	}
 
 	private void advance() {

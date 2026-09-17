@@ -42,7 +42,7 @@ public final class LabRecipes {
 		if (ShapedGridMatcher.matches(grid, PDA_MK2_PATTERN)) {
 			return new ItemStack(ModItems.PDA_MK2);
 		}
-		return ItemStack.EMPTY;
+		return ru.hostprotocol.progress.PdaTransfer.craft(container);
 	}
 
 	public static void stampCrafted(Player player, ItemStack stack) {
@@ -57,6 +57,9 @@ public final class LabRecipes {
 			stack.getOrCreateTag().putString(PdaItem.TAG_SUBJECT, data.getSubjectId());
 		}
 		PdaService.stampOnto(stack, data, serverPlayer.getUUID());
+		if (ru.hostprotocol.progress.PdaTransfer.isTransferResult(stack)) {
+			ru.hostprotocol.progress.ProgressionService.onTransferComplete(serverPlayer, stack);
+		}
 	}
 
 	private static String idOf(ItemStack stack) {
