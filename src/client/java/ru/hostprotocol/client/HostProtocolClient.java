@@ -18,7 +18,9 @@ import ru.hostprotocol.block.ModBlocks;
 import ru.hostprotocol.client.breach.BreachClientFlags;
 import ru.hostprotocol.client.breach.BreachWatchdog;
 import ru.hostprotocol.client.fx.CoordsUnlockClientFx;
+import ru.hostprotocol.client.fx.Day3DisconnectClientFx;
 import ru.hostprotocol.client.fx.DayAnnounceClientFx;
+import ru.hostprotocol.client.fx.InfectionActiveClientFx;
 import ru.hostprotocol.client.fx.MaterializeClientFx;
 import ru.hostprotocol.client.fx.PdaAppearClientFx;
 import ru.hostprotocol.client.fx.SepticLinkClientFx;
@@ -140,13 +142,23 @@ public class HostProtocolClient implements ClientModInitializer {
 			client.execute(() -> SystemErrorClientFx.play(client));
 		});
 
+		ClientPlayNetworking.registerGlobalReceiver(ModNetworking.INFECTION_ACTIVE_S2C, (client, handler, buf, responseSender) -> {
+			client.execute(() -> InfectionActiveClientFx.play(client));
+		});
+
+		ClientPlayNetworking.registerGlobalReceiver(ModNetworking.DAY3_DISCONNECT_S2C, (client, handler, buf, responseSender) -> {
+			client.execute(() -> Day3DisconnectClientFx.play(client));
+		});
+
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			MaterializeClientFx.clientTick(client);
 			PdaAppearClientFx.clientTick(client);
 			DayAnnounceClientFx.clientTick();
+			InfectionActiveClientFx.clientTick();
 			CoordsUnlockClientFx.clientTick();
 			SepticLinkClientFx.clientTick(client);
 			SystemErrorClientFx.clientTick(client);
+			Day3DisconnectClientFx.clientTick(client);
 			if (!pendingIntro || pendingSubjectId == null) {
 				return;
 			}
@@ -172,19 +184,22 @@ public class HostProtocolClient implements ClientModInitializer {
 			MaterializeClientFx.renderHudOverlay(graphics, client);
 			PdaAppearClientFx.render(graphics, client);
 			DayAnnounceClientFx.render(graphics, client);
-			// Cinematics also draw from GameRendererMixin (on top of F1 / pause / sleep).
+			InfectionActiveClientFx.render(graphics, client);
 			SepticLinkClientFx.render(graphics, client);
 			CoordsUnlockClientFx.render(graphics, client);
 			SystemErrorClientFx.render(graphics, client);
+			Day3DisconnectClientFx.render(graphics, client);
 		});
 
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
 			MaterializeClientFx.cancel(client);
 			PdaAppearClientFx.cancel(client);
 			DayAnnounceClientFx.cancel();
+			InfectionActiveClientFx.cancel();
 			CoordsUnlockClientFx.cancel();
 			SepticLinkClientFx.cancel(client);
 			SystemErrorClientFx.cancel(client);
+			Day3DisconnectClientFx.cancel(client);
 			ProtocolClientState.reset();
 			IntroClientState.setFreezeActive(false);
 			pendingIntro = false;

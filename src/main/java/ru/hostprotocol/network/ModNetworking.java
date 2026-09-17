@@ -20,6 +20,8 @@ public final class ModNetworking {
 	public static final ResourceLocation COORDS_UNLOCK_S2C = HostProtocolMod.id("coords_unlock");
 	public static final ResourceLocation BREACH_S2C = HostProtocolMod.id("protocol_breach");
 	public static final ResourceLocation SYSTEM_ERROR_S2C = HostProtocolMod.id("system_error");
+	public static final ResourceLocation INFECTION_ACTIVE_S2C = HostProtocolMod.id("infection_active");
+	public static final ResourceLocation DAY3_DISCONNECT_S2C = HostProtocolMod.id("day3_disconnect");
 
 	private ModNetworking() {}
 
@@ -90,6 +92,14 @@ public final class ModNetworking {
 
 	public static void sendSystemError(ServerPlayer player) {
 		ServerPlayNetworking.send(player, SYSTEM_ERROR_S2C, PacketByteBufs.create());
+	}
+
+	public static void sendInfectionActive(ServerPlayer player) {
+		ServerPlayNetworking.send(player, INFECTION_ACTIVE_S2C, PacketByteBufs.create());
+	}
+
+	public static void sendDay3Disconnect(ServerPlayer player) {
+		ServerPlayNetworking.send(player, DAY3_DISCONNECT_S2C, PacketByteBufs.create());
 	}
 
 	public static FriendlyByteBuf createIntroCompletePacket() {

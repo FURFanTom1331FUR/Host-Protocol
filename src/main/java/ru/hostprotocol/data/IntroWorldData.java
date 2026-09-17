@@ -37,7 +37,10 @@ public class IntroWorldData extends SavedData {
 	private final Set<UUID> systemErrorLogs = new HashSet<>();
 	private final Set<UUID> blueprintLogs = new HashSet<>();
 	private final Set<UUID> breachAcknowledged = new HashSet<>();
+	private final Set<UUID> day3DisconnectFired = new HashSet<>();
+	private final Set<UUID> day3LeftBeforeKick = new HashSet<>();
 	private final Map<UUID, Integer> lastAnnouncedDays = new HashMap<>();
+	private final Map<UUID, Long> day3ArmedAtGameTime = new HashMap<>();
 
 	private boolean infectionActive;
 	private boolean infectionFocusSet;
@@ -84,6 +87,8 @@ public class IntroWorldData extends SavedData {
 		readUuidSet(tag, "SystemErrorLogs", data.systemErrorLogs);
 		readUuidSet(tag, "BlueprintLogs", data.blueprintLogs);
 		readUuidSet(tag, "BreachAcknowledged", data.breachAcknowledged);
+		readUuidSet(tag, "Day3DisconnectFired", data.day3DisconnectFired);
+		readUuidSet(tag, "Day3LeftBeforeKick", data.day3LeftBeforeKick);
 		if (tag.contains("LastAnnouncedDays", Tag.TAG_LIST)) {
 			ListTag list = tag.getList("LastAnnouncedDays", Tag.TAG_COMPOUND);
 			for (int i = 0; i < list.size(); i++) {
@@ -125,6 +130,8 @@ public class IntroWorldData extends SavedData {
 		writeUuidSet(tag, "SystemErrorLogs", systemErrorLogs);
 		writeUuidSet(tag, "BlueprintLogs", blueprintLogs);
 		writeUuidSet(tag, "BreachAcknowledged", breachAcknowledged);
+		writeUuidSet(tag, "Day3DisconnectFired", day3DisconnectFired);
+		writeUuidSet(tag, "Day3LeftBeforeKick", day3LeftBeforeKick);
 		ListTag announced = new ListTag();
 		for (Map.Entry<UUID, Integer> entry : lastAnnouncedDays.entrySet()) {
 			CompoundTag row = new CompoundTag();
@@ -306,6 +313,53 @@ public class IntroWorldData extends SavedData {
 		return false;
 	}
 
+	public boolean hasDay3DisconnectFired(UUID playerId) {
+		return day3DisconnectFired.contains(playerId);
+	}
+
+	public boolean markDay3DisconnectFired(UUID playerId) {
+		boolean changed = day3DisconnectFired.add(playerId);
+		changed |= day3ArmedAtGameTime.remove(playerId) != null;
+		if (changed) {
+			setDirty();
+		}
+		return day3DisconnectFired.contains(playerId) && changed;
+	}
+
+	public boolean hasDay3LeftBeforeKick(UUID playerId) {
+		return day3LeftBeforeKick.contains(playerId);
+	}
+
+	public boolean markDay3LeftBeforeKick(UUID playerId) {
+		if (day3DisconnectFired.contains(playerId)) {
+			return false;
+		}
+		boolean changed = day3LeftBeforeKick.add(playerId);
+		changed |= day3ArmedAtGameTime.remove(playerId) != null;
+		if (changed) {
+			setDirty();
+		}
+		return changed;
+	}
+
+	public long getDay3ArmedAtGameTime(UUID playerId) {
+		return day3ArmedAtGameTime.getOrDefault(playerId, 0L);
+	}
+
+	public void armDay3Stay(UUID playerId, long gameTime) {
+		if (day3ArmedAtGameTime.containsKey(playerId)) {
+			return;
+		}
+		day3ArmedAtGameTime.put(playerId, gameTime);
+		setDirty();
+	}
+
+	public void clearDay3Stay(UUID playerId) {
+		if (day3ArmedAtGameTime.remove(playerId) != null) {
+			setDirty();
+		}
+	}
+
 	public int getLastAnnouncedDay(UUID playerId) {
 		return lastAnnouncedDays.getOrDefault(playerId, 0);
 	}
@@ -386,6 +440,14 @@ public class IntroWorldData extends SavedData {
 	 * after the update, plus whatever dayTime fallback they already accumulated.
 	 */
 	public void ensureInfectionClocks(long gameTime, long seed) {
+		ensureInfectionClocks(gameTime, seed, 1);
+	}
+
+	/**
+	 * Worlds saved before gameTime clocks existed still get a fair real-time wait from first tick
+	 * after the update. If the delay already elapsed (or Day 3 is already active), unlock is due now.
+	 */
+	public void ensureInfectionClocks(long gameTime, long seed, int dayIndex) {
 		if (!infectionActive) {
 			return;
 		}
@@ -395,8 +457,16 @@ public class IntroWorldData extends SavedData {
 			dirty = true;
 		}
 		if (coordsUnlockAtGameTime <= 0L && !coordsDiscovered) {
-			coordsUnlockAtGameTime = infectionStartGameTime + ru.hostprotocol.world.ProtocolTime.coordsLockGameDelay(seed);
+			long delay = ru.hostprotocol.world.ProtocolTime.coordsLockGameDelay(seed);
+			long due = infectionStartGameTime + delay;
+			if (dayIndex >= 3 || gameTime >= due) {
+				coordsUnlockAtGameTime = gameTime;
+			} else {
+				coordsUnlockAtGameTime = due;
+			}
 			dirty = true;
+		} else if (!coordsDiscovered && coordsUnlockAtGameTime > 0L && gameTime >= coordsUnlockAtGameTime) {
+			// already due — maybeUnlockCoords handles it this tick
 		}
 		if (dirty) {
 			setDirty();

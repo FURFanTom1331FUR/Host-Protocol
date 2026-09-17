@@ -20,6 +20,8 @@ import ru.hostprotocol.block.ModBlockTags;
 import ru.hostprotocol.block.ModBlocks;
 import ru.hostprotocol.data.IntroWorldData;
 import ru.hostprotocol.freeze.IntroFreeze;
+import ru.hostprotocol.infection.Day2DebugSequence;
+import ru.hostprotocol.infection.Day3DisconnectController;
 import ru.hostprotocol.infection.InfectionTicker;
 import ru.hostprotocol.infection.MetaBreachController;
 import ru.hostprotocol.infection.SepticLinkController;
@@ -58,8 +60,10 @@ public class HostProtocolMod implements ModInitializer {
 			IntroFreeze.tick(server);
 			PdaService.tick(server);
 			ProtocolDayTracker.tick(server);
+			Day2DebugSequence.tick(server);
 			InfectionTicker.tick(server);
 			SepticLinkController.tick(server);
+			Day3DisconnectController.tick(server);
 			MetaBreachController.tryArm(server, IntroWorldData.get(server.overworld()));
 		});
 
@@ -79,7 +83,10 @@ public class HostProtocolMod implements ModInitializer {
 			MetaBreachController.onPlayerJoin(player, data);
 		});
 
-		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> IntroFreeze.end(handler.player));
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+			IntroFreeze.end(handler.player);
+			Day3DisconnectController.onDisconnect(handler.player, IntroWorldData.get(server.overworld()));
+		});
 
 		ServerPlayNetworking.registerGlobalReceiver(ModNetworking.INTRO_COMPLETE_C2S, (server, player, handler, buf, responseSender) -> {
 			server.execute(() -> {
@@ -92,7 +99,7 @@ public class HostProtocolMod implements ModInitializer {
 			});
 		});
 
-		LOGGER.info("Host Protocol initialized (intro + PDA + day tracker + Day-2 infection + breach)");
+		LOGGER.info("Host Protocol initialized (Day-2 dawn infection, auto coords/septic, Day-3 kick)");
 	}
 
 	private static void registerInfectionGuards() {
@@ -149,6 +156,14 @@ public class HostProtocolMod implements ModInitializer {
 									ctx.getSource().sendSuccess(() -> Component.translatable("hostprotocol.command.replayintro"), true);
 									LOGGER.info("Intro replay requested by {}; subject={}", player.getGameProfile().getName(), data.getSubjectId());
 									return 1;
+								}))
+						.then(Commands.literal("day2")
+								.executes(ctx -> {
+									ServerPlayer player = ctx.getSource().getPlayerOrException();
+									int result = Day2DebugSequence.start(player);
+									ctx.getSource().sendSuccess(() -> Component.translatable("hostprotocol.command.day2"), true);
+									LOGGER.info("[Host Protocol] /hostprotocol day2 by {}", player.getGameProfile().getName());
+									return result;
 								}))
 						.then(Commands.literal("forcecoords")
 								.executes(ctx -> {

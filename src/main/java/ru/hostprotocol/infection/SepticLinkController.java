@@ -12,6 +12,7 @@ import net.minecraft.world.entity.player.Player;
 import ru.hostprotocol.HostProtocolMod;
 import ru.hostprotocol.data.IntroWorldData;
 import ru.hostprotocol.network.ModNetworking;
+import ru.hostprotocol.network.ProtocolBroadcast;
 import ru.hostprotocol.network.TitlePackets;
 import ru.hostprotocol.world.ProtocolTime;
 
@@ -20,12 +21,11 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * First Day-2-night sleep while infection is active: Septic tries to link, then drops.
- * Night is not skipped. Once per world. If the player never sleeps, an auto-cinematic fires
- * ~10–20s after coordinates unlock.
+ * Day-2 Septic handshake: auto-plays ~5–10s after coords even without sleep.
+ * Sleep on Day 2+ still triggers if not yet done. Night skip cancelled for that first attempt.
  */
 public final class SepticLinkController {
-	/** ~7 seconds at 20 tps (within the 6–8s brief). */
+	/** ~7 seconds at 20 tps. */
 	public static final int DURATION_TICKS = 140;
 
 	private static int ticksLeft;
@@ -51,14 +51,21 @@ public final class SepticLinkController {
 		}
 		ServerLevel overworld = serverPlayer.getServer().overworld();
 		if (serverPlayer.serverLevel() != overworld) {
+			HostProtocolMod.LOGGER.info("[Host Protocol] SLEEP intercept skipped (not overworld) player={}",
+					serverPlayer.getGameProfile().getName());
 			return false;
 		}
 		IntroWorldData data = IntroWorldData.get(overworld);
 		if (!data.isIntroCompleted()) {
+			HostProtocolMod.LOGGER.info("[Host Protocol] SLEEP intercept skipped (intro incomplete) player={}",
+					serverPlayer.getGameProfile().getName());
 			return false;
 		}
 		long dayTime = overworld.getDayTime();
-		if (ProtocolTime.dayIndex(dayTime) != 2 || !ProtocolTime.isNight(dayTime)) {
+		int day = ProtocolTime.dayIndex(dayTime);
+		if (day < 2) {
+			HostProtocolMod.LOGGER.info("[Host Protocol] SLEEP intercept skipped (day={}) player={}",
+					day, serverPlayer.getGameProfile().getName());
 			return false;
 		}
 		if (data.hasSepticLinkAttempted()) {
@@ -66,9 +73,13 @@ public final class SepticLinkController {
 		}
 		InfectionTicker.activateIfNeededForSleep(overworld, data);
 		if (!data.isInfectionActive()) {
+			HostProtocolMod.LOGGER.info("[Host Protocol] SLEEP intercept skipped (infection still inactive) player={}",
+					serverPlayer.getGameProfile().getName());
 			return false;
 		}
-		return beginIfNeeded(serverPlayer, data);
+		HostProtocolMod.LOGGER.info("[Host Protocol] SLEEP intercept firing septic player={} day={} dayTime={}",
+				serverPlayer.getGameProfile().getName(), day, dayTime);
+		return beginIfNeeded(serverPlayer, data, "sleep");
 	}
 
 	public static boolean shouldBlockTimeReset(Player player) {
@@ -83,9 +94,7 @@ public final class SepticLinkController {
 			return false;
 		}
 		IntroWorldData data = IntroWorldData.get(overworld);
-		long dayTime = overworld.getDayTime();
-		return ProtocolTime.dayIndex(dayTime) == 2
-				&& ProtocolTime.isNight(dayTime)
+		return ProtocolTime.isDay2OrLater(overworld.getDayTime())
 				&& data.isInfectionActive()
 				&& !data.hasSepticLinkAttempted();
 	}
@@ -95,9 +104,7 @@ public final class SepticLinkController {
 			return true;
 		}
 		IntroWorldData data = IntroWorldData.get(level);
-		long dayTime = level.getDayTime();
-		return ProtocolTime.dayIndex(dayTime) == 2
-				&& ProtocolTime.isNight(dayTime)
+		return ProtocolTime.isDay2OrLater(level.getDayTime())
 				&& data.isInfectionActive()
 				&& !data.hasSepticLinkAttempted();
 	}
@@ -110,17 +117,17 @@ public final class SepticLinkController {
 		ServerLevel overworld = server.overworld();
 		IntroWorldData data = IntroWorldData.get(overworld);
 		InfectionTicker.forceActivate(overworld, data);
+		begin(player, data, "force");
 		data.markSepticLinkAttempted();
-		begin(player, data);
 		MetaBreachController.tryArm(server, data);
 		return true;
 	}
 
-	private static boolean beginIfNeeded(ServerPlayer sleeper, IntroWorldData data) {
+	private static boolean beginIfNeeded(ServerPlayer sleeper, IntroWorldData data, String reason) {
 		if (!data.markSepticLinkAttempted()) {
 			return false;
 		}
-		begin(sleeper, data);
+		begin(sleeper, data, reason);
 		MinecraftServer server = sleeper.getServer();
 		if (server != null) {
 			MetaBreachController.tryArm(server, data);
@@ -128,7 +135,7 @@ public final class SepticLinkController {
 		return true;
 	}
 
-	private static void begin(ServerPlayer sleeper, IntroWorldData data) {
+	private static void begin(ServerPlayer sleeper, IntroWorldData data, String reason) {
 		ticksLeft = DURATION_TICKS;
 		audience.clear();
 		garbledId = data.garbledSubjectId();
@@ -149,15 +156,21 @@ public final class SepticLinkController {
 			player.addEffect(new MobEffectInstance(MobEffects.DARKNESS, DURATION_TICKS + 10, 0, false, false, false));
 			TitlePackets.send(
 					player,
-					Component.translatable("hostprotocol.septic.title.link").withStyle(ChatFormatting.DARK_PURPLE),
-					Component.translatable("hostprotocol.septic.subtitle.link").withStyle(ChatFormatting.LIGHT_PURPLE),
-					8, 40, 12
+					Component.translatable("hostprotocol.septic.title.link").withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.BOLD),
+					Component.translatable("hostprotocol.septic.subtitle.link").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD),
+					8, 50, 12
 			);
-			player.sendSystemMessage(Component.translatable("hostprotocol.septic.chat.channel")
-					.withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.BOLD));
+			player.sendSystemMessage(ProtocolBroadcast.boldGold("hostprotocol.septic.chat.alert"));
+			player.sendSystemMessage(ProtocolBroadcast.boldPurple("hostprotocol.septic.chat.knock"));
+			player.sendSystemMessage(ProtocolBroadcast.boldWhite("hostprotocol.septic.chat.channel"));
 		}
-		HostProtocolMod.LOGGER.info("Septic link cinematic started by {} at {}",
-				sleeper.getGameProfile().getName(), BlockPos.containing(sleeper.position()));
+		HostProtocolMod.LOGGER.info(
+				"[Host Protocol] SEPTIC LINK FIRED reason={} by={} at={} dayTime={} gameTime={}",
+				reason,
+				sleeper.getGameProfile().getName(),
+				BlockPos.containing(sleeper.position()),
+				server.overworld().getDayTime(),
+				server.overworld().getGameTime());
 	}
 
 	public static void tick(MinecraftServer server) {
@@ -171,12 +184,13 @@ public final class SepticLinkController {
 			title(server, "hostprotocol.septic.title.presence", "hostprotocol.septic.subtitle.presence");
 		} else if (elapsed == 56) {
 			broadcastRaw(server, Component.translatable("hostprotocol.septic.chat.echo", garbledId)
-					.withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
+					.withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC, ChatFormatting.BOLD));
 		} else if (elapsed == 88) {
 			broadcast(server, "hostprotocol.septic.chat.reject");
 			title(server, "hostprotocol.septic.title.drop", "hostprotocol.septic.subtitle.drop");
 		} else if (elapsed == 116) {
 			broadcast(server, "hostprotocol.septic.chat.torn");
+			HostProtocolMod.LOGGER.info("[Host Protocol] SEPTIC DROP / disconnect chat");
 		}
 		ticksLeft--;
 		if (ticksLeft <= 0) {
@@ -195,6 +209,9 @@ public final class SepticLinkController {
 		}
 		long at = data.getSepticAutoAtGameTime();
 		if (at <= 0L) {
+			long delay = ProtocolTime.septicAutoGameDelay(overworld.getSeed());
+			data.setSepticAutoAtGameTime(overworld.getGameTime() + delay);
+			HostProtocolMod.LOGGER.info("[Host Protocol] SEPTIC AUTO catch-up armed in {} ticks", delay);
 			return;
 		}
 		if (overworld.getGameTime() < at) {
@@ -213,8 +230,8 @@ public final class SepticLinkController {
 		if (!data.markSepticLinkAttempted()) {
 			return;
 		}
-		HostProtocolMod.LOGGER.info("Septic auto-cinematic (no sleep) at gameTime={}", overworld.getGameTime());
-		begin(lead, data);
+		HostProtocolMod.LOGGER.info("[Host Protocol] SEPTIC AUTO (no sleep) at gameTime={}", overworld.getGameTime());
+		begin(lead, data, "auto");
 		MetaBreachController.tryArm(server, data);
 	}
 
@@ -222,15 +239,15 @@ public final class SepticLinkController {
 		for (ServerPlayer player : players(server)) {
 			TitlePackets.send(
 					player,
-					Component.translatable(titleKey).withStyle(ChatFormatting.DARK_PURPLE),
-					Component.translatable(subtitleKey).withStyle(ChatFormatting.GRAY),
+					Component.translatable(titleKey).withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.BOLD),
+					Component.translatable(subtitleKey).withStyle(ChatFormatting.GRAY, ChatFormatting.BOLD),
 					6, 36, 10
 			);
 		}
 	}
 
 	private static void broadcast(MinecraftServer server, String key) {
-		broadcastRaw(server, Component.translatable(key).withStyle(ChatFormatting.DARK_PURPLE));
+		broadcastRaw(server, Component.translatable(key).withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.BOLD));
 	}
 
 	private static void broadcastRaw(MinecraftServer server, Component message) {

@@ -6,9 +6,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.item.ItemStack;
-import ru.hostprotocol.HostProtocolMod;
+import net.minecraft.world.item.Items;
 import ru.hostprotocol.client.ProtocolClientState;
 import ru.hostprotocol.client.fx.GlitchRenderer;
+import ru.hostprotocol.item.ModItems;
 import ru.hostprotocol.item.PdaItem;
 
 import java.util.ArrayList;
@@ -23,7 +24,13 @@ public class PdaScreen extends Screen {
 		DAY1, DAY2, DAY3, SYSTEM, BLUEPRINT
 	}
 
-	private static final ResourceLocation BLUEPRINT_TEX = new ResourceLocation(HostProtocolMod.MOD_ID, "textures/gui/scanner_blueprint.png");
+	private static final ItemStack[][] SCANNER_GRID = {
+			{new ItemStack(Items.DIAMOND), new ItemStack(Items.IRON_INGOT), new ItemStack(Items.COPPER_INGOT)},
+			{new ItemStack(Items.IRON_INGOT), new ItemStack(Items.GLASS), new ItemStack(Items.COPPER_INGOT)},
+			{new ItemStack(Items.DIAMOND), new ItemStack(Items.IRON_INGOT), new ItemStack(Items.COPPER_INGOT)}
+	};
+	private static final ItemStack SCANNER_RESULT = new ItemStack(ModItems.SCANNER);
+	private static final ResourceLocation CRAFTING_TEX = new ResourceLocation("textures/gui/container/crafting_table.png");
 
 	private static final String[] DAY1_KEYS = {
 			"hostprotocol.pda.page1",
@@ -128,19 +135,14 @@ public class PdaScreen extends Screen {
 		int textW = panelW - 20;
 
 		if (section == Section.BLUEPRINT) {
-			int img = Math.min(96, panelH - 88);
-			int ix = x + panelW - 12 - img;
-			int iy = textY;
-			graphics.fill(ix - 1, iy - 1, ix + img + 1, iy + img + 1, BORDER);
-			graphics.blit(BLUEPRINT_TEX, ix, iy, img, img, 0.0F, 0.0F, 256, 256, 256, 256);
-			textW = Math.max(80, ix - textX - 8);
-		}
-
-		List<FormattedCharSequence> lines = wrapPage(textW);
-		int maxLines = Math.max(1, (panelH - (textY - y) - 28) / 11);
-		int shown = Math.min(maxLines, lines.size());
-		for (int i = 0; i < shown; i++) {
-			graphics.drawString(this.font, lines.get(i), textX, textY + i * 11, BODY, false);
+			renderScannerCraft(graphics, x, y, panelW, panelH, textY);
+		} else {
+			List<FormattedCharSequence> lines = wrapPage(textW);
+			int maxLines = Math.max(1, (panelH - (textY - y) - 28) / 11);
+			int shown = Math.min(maxLines, lines.size());
+			for (int i = 0; i < shown; i++) {
+				graphics.drawString(this.font, lines.get(i), textX, textY + i * 11, BODY, false);
+			}
 		}
 
 		String[] keys = currentKeys();
@@ -154,6 +156,36 @@ public class PdaScreen extends Screen {
 		graphics.drawString(this.font, hint, x + panelW - 10 - hintW, y + panelH - 16, MUTED, false);
 
 		super.render(graphics, mouseX, mouseY, partialTick);
+	}
+
+	private void renderScannerCraft(GuiGraphics graphics, int panelX, int panelY, int panelW, int panelH, int textY) {
+		Component caption = Component.translatable("hostprotocol.pda.blueprint.caption");
+		graphics.drawString(this.font, caption, panelX + 10, textY, BODY, false);
+
+		int slot = 18;
+		int grid = slot * 3;
+		int gap = 22;
+		int resultSize = 26;
+		int totalW = grid + gap + resultSize;
+		int gx = panelX + (panelW - totalW) / 2;
+		int gy = textY + 16;
+
+		graphics.blit(CRAFTING_TEX, gx - 1, gy - 1, 29, 16, 54, 54);
+		for (int row = 0; row < 3; row++) {
+			for (int col = 0; col < 3; col++) {
+				int sx = gx + col * slot;
+				int sy = gy + row * slot;
+				graphics.renderItem(SCANNER_GRID[row][col], sx + 1, sy + 1);
+			}
+		}
+
+		int rx = gx + grid + gap;
+		int ry = gy + slot;
+		graphics.blit(CRAFTING_TEX, rx - 5, ry - 5, 122, 31, 26, 26);
+		graphics.renderItem(SCANNER_RESULT, rx, ry);
+		Component label = Component.translatable("item.hostprotocol.scanner");
+		int labelX = rx + 8 - this.font.width(label) / 2;
+		graphics.drawString(this.font, label, labelX, ry + 20, HEADER, false);
 	}
 
 	private int renderTab(GuiGraphics graphics, int tx, int ty, Component label, boolean selected, int mouseX, int mouseY) {

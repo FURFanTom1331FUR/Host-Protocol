@@ -11,6 +11,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import ru.hostprotocol.client.fx.CoordsUnlockClientFx;
+import ru.hostprotocol.client.fx.Day3DisconnectClientFx;
+import ru.hostprotocol.client.fx.InfectionActiveClientFx;
 import ru.hostprotocol.client.fx.SepticLinkClientFx;
 import ru.hostprotocol.client.fx.SystemErrorClientFx;
 
@@ -30,16 +32,19 @@ public abstract class GameRendererMixin {
 
 	@Inject(method = "render", at = @At("TAIL"))
 	private void hostprotocol$protocolOverlays(float partialTicks, long nanoTime, boolean renderLevel, CallbackInfo ci) {
-		if (!SepticLinkClientFx.isActive() && !CoordsUnlockClientFx.isActive() && !SystemErrorClientFx.isActive()) {
+		if (!SepticLinkClientFx.isActive() && !CoordsUnlockClientFx.isActive() && !SystemErrorClientFx.isActive()
+				&& !InfectionActiveClientFx.isActive() && !Day3DisconnectClientFx.isActive()) {
 			return;
 		}
 		if (this.minecraft == null) {
 			return;
 		}
 		GuiGraphics graphics = new GuiGraphics(this.minecraft, this.renderBuffers.bufferSource());
+		InfectionActiveClientFx.render(graphics, this.minecraft);
 		SepticLinkClientFx.render(graphics, this.minecraft);
 		CoordsUnlockClientFx.render(graphics, this.minecraft);
 		SystemErrorClientFx.render(graphics, this.minecraft);
+		Day3DisconnectClientFx.render(graphics, this.minecraft);
 		graphics.flush();
 	}
 }

@@ -12,11 +12,15 @@ public class LoopingUiSound extends AbstractTickableSoundInstance {
 	private boolean requestedStop;
 
 	public LoopingUiSound(SoundEvent event, float volume) {
+		this(event, volume, 1.0F);
+	}
+
+	public LoopingUiSound(SoundEvent event, float volume, float pitch) {
 		super(event, SoundSource.MASTER, SoundInstance.createUnseededRandom());
 		this.looping = true;
 		this.delay = 0;
 		this.volume = volume;
-		this.pitch = 1.0F;
+		this.pitch = pitch;
 		this.relative = true;
 		this.attenuation = Attenuation.NONE;
 		this.x = 0.0;
