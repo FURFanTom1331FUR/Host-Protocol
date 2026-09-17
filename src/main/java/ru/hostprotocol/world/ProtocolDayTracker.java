@@ -56,6 +56,9 @@ public final class ProtocolDayTracker {
 		if (day >= 2 && data.markDay2Log(player.getUUID())) {
 			PdaService.stampDay2Log(player);
 		}
+		if (day >= 2 && data.markBlueprints(player.getUUID())) {
+			PdaService.stampBlueprints(player);
+		}
 		if (day >= 3 && data.markDay3Log(player.getUUID())) {
 			PdaService.stampDay3Log(player);
 		}

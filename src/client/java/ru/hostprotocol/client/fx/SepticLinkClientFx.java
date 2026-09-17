@@ -9,7 +9,7 @@ import ru.hostprotocol.client.sound.LoopingUiSound;
 import ru.hostprotocol.sound.ModSounds;
 
 /**
- * Failed handshake: full-screen glitch, titles «ПОДКЛЮЧЕНИЕ… / SEPTIC», SFX, disconnect. ~7s.
+ * Failed handshake: full-screen glitch, titles «ПОДКЛЮЧЕНИЕ… / SEPTIC», female VO (link then drop).
  */
 public final class SepticLinkClientFx {
 	private static int ticksLeft;
@@ -17,7 +17,7 @@ public final class SepticLinkClientFx {
 	private static String subjectId = "—";
 	private static String garbledId = "—";
 	private static LoopingUiSound staticLoop;
-	private static LoopingUiSound hum;
+	private static boolean dropPlayed;
 
 	private SepticLinkClientFx() {}
 
@@ -27,17 +27,15 @@ public final class SepticLinkClientFx {
 		garbledId = garbled == null || garbled.isEmpty() ? "С000Х" : garbled;
 		duration = Math.max(120, ticks);
 		ticksLeft = duration;
+		dropPlayed = false;
 		if (minecraft == null) {
 			return;
 		}
 		try {
-			staticLoop = new LoopingUiSound(ModSounds.VOICE_GLITCH_STATIC, 0.85F);
-			hum = new LoopingUiSound(ModSounds.VOICE_MATERIALIZE_HUM, 0.9F);
+			staticLoop = new LoopingUiSound(ModSounds.VOICE_GLITCH_STATIC, 0.28F);
 			minecraft.getSoundManager().play(staticLoop);
-			minecraft.getSoundManager().play(hum);
-			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.VOICE_CONNECTION_ERROR, 0.55F, 1.0F));
-			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.VOICE_GLITCH_HIT, 0.45F, 1.0F));
-			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.VOICE_SYSTEM_ERROR_SHORT, 0.75F, 0.85F));
+			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.VOICE_SEPTIC_LINK, 1.0F, 1.0F));
+			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.VOICE_BUNKER_SIREN, 1.4F, 0.10F));
 		} catch (Exception ignored) {
 			// missing ogg must not crash the handshake
 		}
@@ -45,6 +43,7 @@ public final class SepticLinkClientFx {
 
 	public static void cancel(Minecraft minecraft) {
 		ticksLeft = 0;
+		dropPlayed = false;
 		stopLoops(minecraft);
 	}
 
@@ -57,9 +56,10 @@ public final class SepticLinkClientFx {
 			return;
 		}
 		int elapsed = duration - ticksLeft;
-		if (minecraft != null && (elapsed == 18 || elapsed == 40 || elapsed == 70 || elapsed == 100 || elapsed == 124)) {
+		if (minecraft != null && !dropPlayed && elapsed >= 78) {
+			dropPlayed = true;
 			try {
-				minecraft.getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.VOICE_GLITCH_HIT, 0.7F, 0.95F));
+				minecraft.getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.VOICE_SEPTIC_DROP, 1.0F, 1.0F));
 			} catch (Exception ignored) {
 				// ignore
 			}
@@ -128,13 +128,8 @@ public final class SepticLinkClientFx {
 			staticLoop.requestStop();
 			staticLoop = null;
 		}
-		if (hum != null) {
-			hum.requestStop();
-			hum = null;
-		}
 		if (minecraft != null) {
 			minecraft.getSoundManager().stop(ModSounds.VOICE_GLITCH_STATIC.getLocation(), net.minecraft.sounds.SoundSource.MASTER);
-			minecraft.getSoundManager().stop(ModSounds.VOICE_MATERIALIZE_HUM.getLocation(), net.minecraft.sounds.SoundSource.MASTER);
 		}
 	}
 }

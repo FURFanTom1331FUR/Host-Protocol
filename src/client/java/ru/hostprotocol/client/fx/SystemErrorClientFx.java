@@ -9,7 +9,7 @@ import ru.hostprotocol.client.sound.LoopingUiSound;
 import ru.hostprotocol.sound.ModSounds;
 
 /**
- * Next-join-after-breach: bunker siren + male system-error voice + full-screen fault overlay.
+ * Next-join-after-breach: female system-error voice + light siren under VO + full-screen fault overlay.
  */
 public final class SystemErrorClientFx {
 	private static final int DURATION_TICKS = 160;
@@ -30,10 +30,10 @@ public final class SystemErrorClientFx {
 			return;
 		}
 		try {
-			siren = new LoopingUiSound(ModSounds.VOICE_BUNKER_SIREN, 0.95F);
+			siren = new LoopingUiSound(ModSounds.VOICE_BUNKER_SIREN, 0.18F);
 			minecraft.getSoundManager().play(siren);
 			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.VOICE_SYSTEM_ERROR, 1.0F, 1.0F));
-			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.VOICE_GLITCH_HIT, 0.6F, 0.4F));
+			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.VOICE_GLITCH_STATIC, 1.4F, 0.22F));
 		} catch (Exception ignored) {
 			// missing ogg must not crash acknowledgement
 		}
@@ -44,8 +44,8 @@ public final class SystemErrorClientFx {
 			return;
 		}
 		try {
-			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.VOICE_BUNKER_SIREN, 0.85F, 0.9F));
-			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.VOICE_SYSTEM_ERROR_SHORT, 1.0F, 0.85F));
+			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.VOICE_BUNKER_SIREN, 1.6F, 0.16F));
+			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.VOICE_SYSTEM_ERROR_SHORT, 1.0F, 1.0F));
 		} catch (Exception ignored) {
 			// ignore
 		}

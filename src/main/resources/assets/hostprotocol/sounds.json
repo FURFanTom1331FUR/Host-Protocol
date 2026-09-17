@@ -85,5 +85,50 @@
 				"stream": true
 			}
 		]
+	},
+	"voice.coords_announce": {
+		"subtitle": "subtitles.hostprotocol.voice.coords_announce",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/coords_announce",
+				"stream": true
+			}
+		]
+	},
+	"voice.septic_link": {
+		"subtitle": "subtitles.hostprotocol.voice.septic_link",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/septic_link",
+				"stream": true
+			}
+		]
+	},
+	"voice.septic_drop": {
+		"subtitle": "subtitles.hostprotocol.voice.septic_drop",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/septic_drop",
+				"stream": true
+			}
+		]
+	},
+	"voice.signal_lost": {
+		"subtitle": "subtitles.hostprotocol.voice.signal_lost",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/signal_lost",
+				"stream": true
+			}
+		]
+	},
+	"voice.signal_lost_tone": {
+		"subtitle": "subtitles.hostprotocol.voice.signal_lost_tone",
+		"sounds": [
+			{
+				"name": "hostprotocol:voice/signal_lost_tone",
+				"stream": true
+			}
+		]
 	}
 }

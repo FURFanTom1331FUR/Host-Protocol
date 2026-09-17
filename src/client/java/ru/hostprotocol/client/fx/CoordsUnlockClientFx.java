@@ -8,7 +8,7 @@ import net.minecraft.util.Mth;
 import ru.hostprotocol.sound.ModSounds;
 
 /**
- * Full-screen lock of infection coordinates — title + coords, not chat-only.
+ * Full-screen lock of infection coordinates — female VO, titles, several chat lines on the server.
  */
 public final class CoordsUnlockClientFx {
 	private static final int DURATION_TICKS = 90;
@@ -33,8 +33,9 @@ public final class CoordsUnlockClientFx {
 			return;
 		}
 		try {
-			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.VOICE_GLITCH_HIT, 0.55F, 0.9F));
-			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.VOICE_CONNECTION_ERROR, 0.7F, 0.55F));
+			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.VOICE_COORDS_ANNOUNCE, 1.0F, 1.0F));
+			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.VOICE_GLITCH_STATIC, 1.6F, 0.22F));
+			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.VOICE_BUNKER_SIREN, 1.35F, 0.12F));
 		} catch (Exception ignored) {
 			// missing ogg must not crash the lock
 		}
@@ -60,11 +61,11 @@ public final class CoordsUnlockClientFx {
 		float fadeIn = Mth.clamp(elapsed / 8.0F, 0.0F, 1.0F);
 		float fadeOut = Mth.clamp(ticksLeft / 16.0F, 0.0F, 1.0F);
 		float alpha = fadeIn * fadeOut;
-		int veil = (int) (200 * alpha);
+		int veil = (int) (210 * alpha);
 		graphics.fill(0, 0, w, h, veil << 24);
-		GlitchRenderer.render(graphics, w, h, elapsed, 0.45F * alpha);
+		GlitchRenderer.render(graphics, w, h, elapsed, 0.55F * alpha);
 
-		int barH = 56;
+		int barH = 64;
 		int barY = h / 2 - barH / 2;
 		graphics.fill(0, barY - 2, w, barY + barH + 2, GlitchRenderer.withAlpha(GlitchRenderer.PURPLE_RGB, (int) (200 * alpha)));
 		graphics.fill(0, barY, w, barY + barH, GlitchRenderer.withAlpha(0x0A0A0E, (int) (235 * alpha)));
@@ -73,10 +74,12 @@ public final class CoordsUnlockClientFx {
 		int color = GlitchRenderer.withAlpha(0xEDEDED, (int) (255 * alpha));
 		int accent = GlitchRenderer.withAlpha(GlitchRenderer.PURPLE_RGB, (int) (255 * alpha));
 		graphics.drawCenteredString(minecraft.font, Component.translatable("hostprotocol.infection.coords.title"),
-				w / 2 + jx, barY + 10, color);
+				w / 2 + jx, barY + 8, color);
 		graphics.drawCenteredString(minecraft.font, Component.translatable("hostprotocol.infection.coords.subtitle", x, y, z),
-				w / 2, barY + 26, accent);
+				w / 2, barY + 24, accent);
+		graphics.drawCenteredString(minecraft.font, Component.literal("X " + x + "   Y " + y + "   Z " + z),
+				w / 2 + jx / 2, barY + 38, color);
 		graphics.drawCenteredString(minecraft.font, Component.translatable("hostprotocol.infection.coords.hint"),
-				w / 2, barY + 40, GlitchRenderer.withAlpha(0x9A9A9A, (int) (220 * alpha)));
+				w / 2, barY + 50, GlitchRenderer.withAlpha(0x9A9A9A, (int) (220 * alpha)));
 	}
 }

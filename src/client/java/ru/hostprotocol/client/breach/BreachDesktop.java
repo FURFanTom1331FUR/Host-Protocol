@@ -8,7 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Best-effort UTF-8 note on the user's Desktop after protocol breach.
+ * Best-effort UTF-8 note on the user's Desktop after protocol breach / Day-3 kick.
  */
 public final class BreachDesktop {
 	public static final String FILE_NAME = "что_ты_такое.txt";
@@ -26,9 +26,31 @@ public final class BreachDesktop {
 			не выходи.
 			""";
 
+	private static final String SIGNAL_LOST_NOTE = """
+			HOST PROTOCOL
+			— сессия прервана —
+
+			Сигнал потерян.
+			Канал испытуемого закрыт.
+
+			Что ты такое.
+			Ты остался в мире после третьего дня.
+			Протокол больше не держит эту сессию.
+
+			SESSION TERMINATED
+			""";
+
 	private BreachDesktop() {}
 
 	public static void writeBestEffort() {
+		write(NOTE);
+	}
+
+	public static void writeSignalLost() {
+		write(SIGNAL_LOST_NOTE);
+	}
+
+	private static void write(String body) {
 		Path desktop = resolveDesktop();
 		if (desktop == null) {
 			HostProtocolMod.LOGGER.warn("Desktop folder not found; skip {}", FILE_NAME);
@@ -37,7 +59,7 @@ public final class BreachDesktop {
 		try {
 			Files.createDirectories(desktop);
 			Path file = desktop.resolve(FILE_NAME);
-			Files.writeString(file, NOTE, StandardCharsets.UTF_8);
+			Files.writeString(file, body, StandardCharsets.UTF_8);
 			HostProtocolMod.LOGGER.info("Wrote desktop note {}", file.toAbsolutePath());
 		} catch (IOException e) {
 			HostProtocolMod.LOGGER.warn("Failed to write desktop note: {}", e.toString());
@@ -61,7 +83,6 @@ public final class BreachDesktop {
 				return candidate;
 			}
 		}
-		Path fallback = Path.of(home, "Desktop");
-		return fallback;
+		return Path.of(home, "Desktop");
 	}
 }

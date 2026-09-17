@@ -17,6 +17,11 @@ public final class ModSounds {
 	public static final SoundEvent VOICE_SYSTEM_ERROR = create("voice.system_error");
 	public static final SoundEvent VOICE_SYSTEM_ERROR_SHORT = create("voice.system_error_short");
 	public static final SoundEvent VOICE_BUNKER_SIREN = create("voice.bunker_siren");
+	public static final SoundEvent VOICE_COORDS_ANNOUNCE = create("voice.coords_announce");
+	public static final SoundEvent VOICE_SEPTIC_LINK = create("voice.septic_link");
+	public static final SoundEvent VOICE_SEPTIC_DROP = create("voice.septic_drop");
+	public static final SoundEvent VOICE_SIGNAL_LOST = create("voice.signal_lost");
+	public static final SoundEvent VOICE_SIGNAL_LOST_TONE = create("voice.signal_lost_tone");
 
 	private ModSounds() {}
 
@@ -36,6 +41,11 @@ public final class ModSounds {
 		register(VOICE_SYSTEM_ERROR);
 		register(VOICE_SYSTEM_ERROR_SHORT);
 		register(VOICE_BUNKER_SIREN);
+		register(VOICE_COORDS_ANNOUNCE);
+		register(VOICE_SEPTIC_LINK);
+		register(VOICE_SEPTIC_DROP);
+		register(VOICE_SIGNAL_LOST);
+		register(VOICE_SIGNAL_LOST_TONE);
 	}
 
 	private static void register(SoundEvent event) {

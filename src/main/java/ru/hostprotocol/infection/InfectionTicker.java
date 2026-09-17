@@ -17,12 +17,14 @@ import ru.hostprotocol.data.IntroWorldData;
 import ru.hostprotocol.freeze.IntroFreeze;
 import ru.hostprotocol.item.PdaService;
 import ru.hostprotocol.network.ModNetworking;
+import ru.hostprotocol.network.ProtocolBroadcast;
 import ru.hostprotocol.network.TitlePackets;
 import ru.hostprotocol.sound.ModSounds;
 import ru.hostprotocol.world.ProtocolTime;
 
 /**
- * Day-2-night infection focus: persistent coordinates, forced chunks, slow radius growth.
+ * Day-2 infection focus: arms at dawn of Day 2 (not only at night), persistent coordinates,
+ * forced chunks, slow radius growth.
  */
 public final class InfectionTicker {
 	/** Max conversion radius (blocks) for this MVP. */
@@ -48,7 +50,11 @@ public final class InfectionTicker {
 		}
 
 		long dayTime = level.getDayTime();
-		if (!data.isInfectionActive() && ProtocolTime.isDay2Night(dayTime)) {
+		int day = ProtocolTime.dayIndex(dayTime);
+		if (!data.isInfectionActive() && shouldActivate(dayTime)) {
+			HostProtocolMod.LOGGER.info(
+					"[Host Protocol] INFECTION TRIGGER day={} dayTime={} gameTime={} (day2-begin or night catch-up)",
+					day, dayTime, level.getGameTime());
 			activate(level, data, dayTime);
 		}
 
@@ -56,10 +62,14 @@ public final class InfectionTicker {
 			return;
 		}
 
-		data.ensureInfectionClocks(level.getGameTime(), level.getSeed());
+		data.ensureInfectionClocks(level.getGameTime(), level.getSeed(), day);
 		keepFocusLoaded(level, data);
 		spread(level, data, dayTime);
 		maybeUnlockCoords(server, data, dayTime);
+	}
+
+	private static boolean shouldActivate(long dayTime) {
+		return ProtocolTime.isDay2OrLater(dayTime) || ProtocolTime.isDay2Night(dayTime);
 	}
 
 	public static void activateIfNeededForSleep(ServerLevel level, IntroWorldData data) {
@@ -67,10 +77,15 @@ public final class InfectionTicker {
 			return;
 		}
 		if (IntroFreeze.isActive() || !data.isIntroCompleted()) {
+			HostProtocolMod.LOGGER.info(
+					"[Host Protocol] SLEEP did not arm infection (freeze={} introCompleted={})",
+					IntroFreeze.isActive(), data.isIntroCompleted());
 			return;
 		}
 		long dayTime = level.getDayTime();
-		if (ProtocolTime.dayIndex(dayTime) != 2) {
+		if (!ProtocolTime.isDay2OrLater(dayTime)) {
+			HostProtocolMod.LOGGER.info("[Host Protocol] SLEEP ignored for infection (dayIndex={})",
+					ProtocolTime.dayIndex(dayTime));
 			return;
 		}
 		activate(level, data, dayTime);
@@ -78,7 +93,9 @@ public final class InfectionTicker {
 
 	public static void forceActivate(ServerLevel level, IntroWorldData data) {
 		if (data.isInfectionActive() && data.hasInfectionFocus()) {
-			data.ensureInfectionClocks(level.getGameTime(), level.getSeed());
+			data.ensureInfectionClocks(level.getGameTime(), level.getSeed(),
+					ProtocolTime.dayIndex(level.getDayTime()));
+			announceActivation(level.getServer(), data, true);
 			return;
 		}
 		activate(level, data, level.getDayTime());
@@ -88,14 +105,41 @@ public final class InfectionTicker {
 		BlockPos focus = pickFocus(level);
 		long gameTime = level.getGameTime();
 		long coordsAt = gameTime + ProtocolTime.coordsLockGameDelay(level.getSeed());
+		if (ProtocolTime.dayIndex(dayTime) >= 3) {
+			coordsAt = gameTime;
+		}
 		data.activateInfection(focus, dayTime, gameTime, coordsAt);
 		keepFocusLoaded(level, data);
 		infectPos(level, focus, true);
 		for (BlockPos near : BlockPos.betweenClosed(focus.offset(-1, -1, -1), focus.offset(1, 1, 1))) {
 			infectPos(level, near.immutable(), false);
 		}
-		HostProtocolMod.LOGGER.info("Infection focus activated at {} (dayTime={}, gameTime={}, coordsAt={})",
-				focus, dayTime, gameTime, coordsAt);
+		HostProtocolMod.LOGGER.info(
+				"[Host Protocol] INFECTION ACTIVATED focus=({}, {}, {}) day={} dayTime={} gameTime={} coordsUnlockAt={}",
+				focus.getX(), focus.getY(), focus.getZ(),
+				ProtocolTime.dayIndex(dayTime), dayTime, gameTime, coordsAt);
+		announceActivation(level.getServer(), data, false);
+	}
+
+	private static void announceActivation(MinecraftServer server, IntroWorldData data, boolean replay) {
+		if (server == null) {
+			return;
+		}
+		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+			player.sendSystemMessage(ProtocolBroadcast.boldGold("hostprotocol.infection.active.chat"));
+			player.sendSystemMessage(ProtocolBroadcast.boldPurple("hostprotocol.infection.active.chat.detail"));
+			TitlePackets.send(
+					player,
+					Component.translatable("hostprotocol.infection.active.title").withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.BOLD),
+					Component.translatable("hostprotocol.infection.active.subtitle").withStyle(ChatFormatting.RED),
+					8, 50, 12
+			);
+			ModNetworking.sendInfectionActive(player);
+			ModNetworking.sendProtocolState(player, data);
+		}
+		ProtocolBroadcast.log("INFECTION ANNOUNCED",
+				"focus=" + data.getFocusX() + "," + data.getFocusY() + "," + data.getFocusZ()
+						+ " replay=" + replay);
 	}
 
 	private static BlockPos pickFocus(ServerLevel level) {
@@ -244,13 +288,15 @@ public final class InfectionTicker {
 		)) {
 			return;
 		}
+		HostProtocolMod.LOGGER.info(
+				"[Host Protocol] COORDS UNLOCK DUE gameTime={} unlockAt={} startGame={} day={} dayTime={}",
+				level.getGameTime(), data.getCoordsUnlockAtGameTime(), data.getInfectionStartGameTime(),
+				day, dayTime);
 		unlockCoords(server, data, false);
 	}
 
 	/**
 	 * Persist coords, schedule auto-Septic, and shout the lock so it cannot be missed.
-	 *
-	 * @param silent if true, skip titles/overlay (not used; keep signature for tests)
 	 */
 	public static void unlockCoords(MinecraftServer server, IntroWorldData data, boolean forced) {
 		boolean firstWorldUnlock = data.markCoordsDiscovered();
@@ -261,31 +307,41 @@ public final class InfectionTicker {
 		if (data.getSepticAutoAtGameTime() <= 0L && !data.hasSepticLinkAttempted()) {
 			long delay = ProtocolTime.septicAutoGameDelay(server.overworld().getSeed());
 			data.setSepticAutoAtGameTime(server.overworld().getGameTime() + delay);
-			HostProtocolMod.LOGGER.info("Septic auto-cinematic armed in {} ticks", delay);
+			HostProtocolMod.LOGGER.info("[Host Protocol] SEPTIC AUTO ARMED in {} ticks (gameTime={})",
+					delay, server.overworld().getGameTime());
 		}
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-			announceCoords(player, data, data.markDay2CoordsLog(player.getUUID()) || forced);
+			announceCoords(player, data, true);
 		}
 		MetaBreachController.tryArm(server, data);
-		HostProtocolMod.LOGGER.info("Infection coordinates locked: {} {} {} (forced={})",
-				data.getFocusX(), data.getFocusY(), data.getFocusZ(), forced);
+		HostProtocolMod.LOGGER.info(
+				"[Host Protocol] COORDS UNLOCKED x={} y={} z={} forced={} gameTime={}",
+				data.getFocusX(), data.getFocusY(), data.getFocusZ(), forced,
+				server.overworld().getGameTime());
 	}
 
 	private static void announceCoords(ServerPlayer player, IntroWorldData data, boolean playFx) {
+		data.markBlueprints(player.getUUID());
 		PdaService.stampDay2Coords(player, data);
+		PdaService.stampBlueprints(player);
 		ModNetworking.sendProtocolState(player, data);
 		int x = data.getFocusX();
 		int y = data.getFocusY();
 		int z = data.getFocusZ();
+		player.sendSystemMessage(ProtocolBroadcast.boldGold("hostprotocol.infection.coords.chat.header"));
+		player.sendSystemMessage(ProtocolBroadcast.boldWhite("hostprotocol.infection.coords.chat.x", x));
+		player.sendSystemMessage(ProtocolBroadcast.boldWhite("hostprotocol.infection.coords.chat.y", y));
+		player.sendSystemMessage(ProtocolBroadcast.boldWhite("hostprotocol.infection.coords.chat.z", z));
+		player.sendSystemMessage(ProtocolBroadcast.boldPurple("hostprotocol.infection.coords.chat.footer", x, y, z));
 		player.sendSystemMessage(Component.translatable("hostprotocol.infection.coords.notice", x, y, z)
-				.withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.BOLD));
+				.withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD));
 		if (!playFx) {
 			return;
 		}
 		TitlePackets.send(
 				player,
-				Component.translatable("hostprotocol.infection.coords.title").withStyle(ChatFormatting.LIGHT_PURPLE),
-				Component.translatable("hostprotocol.infection.coords.subtitle", x, y, z).withStyle(ChatFormatting.WHITE),
+				Component.translatable("hostprotocol.infection.coords.title").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD),
+				Component.translatable("hostprotocol.infection.coords.subtitle", x, y, z).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD),
 				10, 80, 20
 		);
 		ModNetworking.sendCoordsUnlock(player, x, y, z);
@@ -296,6 +352,8 @@ public final class InfectionTicker {
 			if (data.hasDay2CoordsLog(player.getUUID())) {
 				continue;
 			}
+			HostProtocolMod.LOGGER.info("[Host Protocol] COORDS catch-up stamp for {}",
+					player.getGameProfile().getName());
 			announceCoords(player, data, true);
 		}
 	}

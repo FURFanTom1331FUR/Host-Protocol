@@ -5,9 +5,9 @@ import ru.hostprotocol.world.ProtocolTime;
 /**
  * Pure decision for when Day-2 focus coordinates become visible.
  *
- * <p>Primary clock is {@code gameTime} (real ticking, immune to {@code /time set} jumping the sun
- * backwards). {@code dayTime} is a fallback so {@code /time add} still unlocks. Day index ≥ 3
- * catches players who slept/skipped the rest of Day 2 without waiting.
+ * <p>Clock is {@code gameTime} (~20–30s). Immune to {@code /time set} jumping the sun.
+ * If the delay already elapsed (load / skip), unlock immediately. Day index ≥ 3 is a
+ * last-resort so a jump to Day 3 cannot skip the lock before the 10s kick.
  */
 public final class CoordsUnlock {
 	private CoordsUnlock() {}
@@ -29,6 +29,11 @@ public final class CoordsUnlock {
 		}
 		if (infectionStartGameTime > 0L
 				&& gameTime - infectionStartGameTime >= ProtocolTime.COORDS_LOCK_GAME_TICKS_MAX) {
+			return true;
+		}
+		if (infectionStartGameTime > 0L
+				&& unlockAtGameTime <= 0L
+				&& gameTime - infectionStartGameTime >= ProtocolTime.COORDS_LOCK_GAME_TICKS_MIN) {
 			return true;
 		}
 		if (infectionStartDayTime > 0L) {
