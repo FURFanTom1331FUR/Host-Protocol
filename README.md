@@ -371,8 +371,8 @@ src/main/resources/assets/hostprotocol/sounds/voice/
   blueprint_update.ogg      (ассистент: чертежи обновлены)
   transfer_complete.ogg
   module_online.ogg
-  septic_what.ogg           («Что ты такое. Ты вроде не из этого мира.»)
-  whisper_ambience.ogg
+  septic_what.ogg           (не используется на взгляд; строка ушла в чат)
+  whisper_ambience.ogg      (присутствие рядом, не триггер взгляда)
 ```
 
 ## Структура
