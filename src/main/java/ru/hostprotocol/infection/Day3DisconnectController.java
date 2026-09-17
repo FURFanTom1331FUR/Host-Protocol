@@ -114,7 +114,7 @@ public final class Day3DisconnectController {
 			return;
 		}
 		for (UUID id : FX_TICKS_LEFT.keySet().toArray(new UUID[0])) {
-			int left = FX_TICKS_LEFT.merge(id, -1, Integer::sum);
+			Integer left = FX_TICKS_LEFT.merge(id, -1, Integer::sum);
 			if (left == null || left > 0) {
 				continue;
 			}
