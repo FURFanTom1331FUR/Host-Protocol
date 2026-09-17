@@ -12,8 +12,8 @@ public final class ModEntityTypes {
 			BuiltInRegistries.ENTITY_TYPE,
 			HostProtocolMod.id("septic"),
 			EntityType.Builder.of(SepticEntity::new, MobCategory.MONSTER)
-					.sized(0.6F, 1.95F)
-					.clientTrackingRange(10)
+					.sized(0.7F, 2.0F)
+					.clientTrackingRange(12)
 					.fireImmune()
 					.build("septic")
 	);

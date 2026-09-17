@@ -12,7 +12,8 @@ public class SepticRenderer extends HumanoidMobRenderer<SepticEntity, HumanoidMo
 	private static final ResourceLocation TEXTURE = new ResourceLocation(HostProtocolMod.MOD_ID, "textures/entity/septic.png");
 
 	public SepticRenderer(EntityRendererProvider.Context context) {
-		super(context, new HumanoidModel<>(context.bakeLayer(ModelLayers.PLAYER)), 0.5F);
+		super(context, new HumanoidModel<>(context.bakeLayer(ModelLayers.PLAYER)), 0.6F);
+		this.addLayer(new SepticFaceLayer(this));
 	}
 
 	@Override

@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import ru.hostprotocol.entity.SepticEntity;
 import ru.hostprotocol.infection.InfectedMobs;
 
 /**
@@ -21,7 +22,7 @@ public class LivingEntityRendererMixin {
 			at = @At("HEAD")
 	)
 	private void hostprotocol$infectedTintHead(LivingEntity entity, float entityYaw, float partialTicks, PoseStack poseStack, MultiBufferSource buffer, int packedLight, CallbackInfo ci) {
-		if (InfectedMobs.isInfected(entity)) {
+		if (InfectedMobs.isInfected(entity) && !(entity instanceof SepticEntity)) {
 			float shade = InfectedMobs.stageOf(entity) >= 2 ? 0.16F : 0.30F;
 			RenderSystem.setShaderColor(shade * 0.70F, shade * 0.18F, shade * 1.25F, 1.0F);
 		}
